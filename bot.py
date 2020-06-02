@@ -3,15 +3,36 @@ import asyncio
 import uuid
 import json
 import requests
+import random
 
-class WebSocketClient():
+class Bot:
 
     def __init__(self):
-        requests.get('https://api.twitch.tv/kraken/channel', {})
+        self.client_id = 'lil5xkerbfl7lsj2pk1qhvgsi8fro4'
+        self.client_secret = 'm33z33z1d60n67n2kev7iw54foo6db'
+        self.channel_id = '95883459' # default
+        self.auth_token = None
 
+        self.auth_token = requests.post('https://id.twitch.tv/oauth2/token',
+        params={
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'grant_type': 'client_credentials'
+        }).json()['access_token']
+        print('Successfully acquired app access token')
+
+        self.channel_id = requests.get('https://api.twitch.tv/helix/users',
+        headers={
+            'Client-Id': self.client_id,
+            'Authorization': f'Bearer {self.auth_token}'
+        },
+        params={
+            'login': 'jmal116'
+        }).json()['data'][0]['id']
+        print('Successfully fetched channel id')
+        
         # list of topics to subscribe to
-        self.topics = ["channel-points-channel-v1.<ChannelID>"]
-        self.auth_token = "jt6lh3r9gwi42q5oargab1w6mje8pg"
+        self.topics = [f"channel-points-channel-v1.{self.channel_id}"]
 
     async def connect(self):
         '''
@@ -52,13 +73,26 @@ class WebSocketClient():
         Sending heartbeat to server every 1 minutes
         Ping - pong messages to verify/keep connection is alive
         '''
+        data_set = {"type": "PING"}
+        json_request = json.dumps(data_set)
         while True:
             try:
-                data_set = {"type": "PING"}
-                json_request = json.dumps(data_set)
-                print(json_request)
                 await connection.send(json_request)
-                await asyncio.sleep(60)
+                jitter = random.randint(1, 5)
+                await asyncio.sleep(60 + jitter)
             except websockets.exceptions.ConnectionClosed:
                 print('Connection with server closed')
                 break
+
+if __name__ == "__main__":
+    client = Bot()
+    loop = asyncio.get_event_loop()
+    # Start connection and get client connection protocol
+    connection = loop.run_until_complete(client.connect())
+    # Start listener and heartbeat
+    tasks = [
+        asyncio.ensure_future(client.heartbeat(connection)),
+        asyncio.ensure_future(client.receiveMessage(connection)),
+    ]
+
+    loop.run_until_complete(asyncio.wait(tasks))

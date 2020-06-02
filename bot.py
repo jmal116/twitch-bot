@@ -10,8 +10,7 @@ class Bot:
     def __init__(self):
         self.client_id = 'lil5xkerbfl7lsj2pk1qhvgsi8fro4'
         self.client_secret = 'm33z33z1d60n67n2kev7iw54foo6db'
-        self.channel_id = '95883459' # default
-        self.auth_token = None
+        self.connection = None
 
         self.auth_token = requests.post('https://id.twitch.tv/oauth2/token',
         params={
@@ -46,7 +45,6 @@ class Bot:
             message = {"type": "LISTEN", "nonce": str(self.generate_nonce()), "data":{"topics": self.topics, "auth_token": self.auth_token}}
             json_message = json.dumps(message)
             await self.sendMessage(json_message)
-            return self.connection
 
     def generate_nonce(self):
         '''Generate pseudo-random number and seconds since epoch (UTC).'''
@@ -58,17 +56,17 @@ class Bot:
         '''Sending message to webSocket server'''
         await self.connection.send(message)
 
-    async def receiveMessage(self, connection):
+    async def receiveMessage(self):
         '''Receiving all server messages and handling them'''
         while True:
             try:
-                message = await connection.recv()
+                message = await self.connection.recv()
                 print('Received message from server: ' + str(message))
             except websockets.exceptions.ConnectionClosed:
                 print('Connection with server closed')
                 break
 
-    async def heartbeat(self, connection):
+    async def heartbeat(self):
         '''
         Sending heartbeat to server every 1 minutes
         Ping - pong messages to verify/keep connection is alive
@@ -77,7 +75,7 @@ class Bot:
         json_request = json.dumps(data_set)
         while True:
             try:
-                await connection.send(json_request)
+                await self.connection.send(json_request)
                 jitter = random.randint(1, 5)
                 await asyncio.sleep(60 + jitter)
             except websockets.exceptions.ConnectionClosed:
@@ -88,11 +86,11 @@ if __name__ == "__main__":
     client = Bot()
     loop = asyncio.get_event_loop()
     # Start connection and get client connection protocol
-    connection = loop.run_until_complete(client.connect())
+    loop.run_until_complete(client.connect())
     # Start listener and heartbeat
     tasks = [
-        asyncio.ensure_future(client.heartbeat(connection)),
-        asyncio.ensure_future(client.receiveMessage(connection)),
+        asyncio.ensure_future(client.heartbeat()),
+        asyncio.ensure_future(client.receiveMessage()),
     ]
 
     loop.run_until_complete(asyncio.wait(tasks))

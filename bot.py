@@ -3,6 +3,7 @@ import uuid
 import json
 import random
 from datetime import datetime, timedelta
+import webbrowser
 
 import websockets
 import requests
@@ -17,6 +18,7 @@ class Bot:
         self.should_exit = False
         self.next_ping = datetime.now()
 
+        #Get an app access token
         self.auth_token = requests.post('https://id.twitch.tv/oauth2/token',
         params={
             'client_id': self.client_id,
@@ -25,6 +27,7 @@ class Bot:
         }).json()['access_token']
         print('Successfully acquired app access token')
 
+        #verify channel id
         self.channel_id = requests.get('https://api.twitch.tv/helix/users',
         headers={
             'Client-Id': self.client_id,
@@ -34,7 +37,23 @@ class Bot:
             'login': 'jmal116'
         }).json()['data'][0]['id']
         print('Successfully fetched channel id')
-        
+
+        #Get authorization code from user
+        print('Paste code from the URL you were redirected to:\n')
+        webbrowser.open(r'https://id.twitch.tv/oauth2/authorize?client_id=lil5xkerbfl7lsj2pk1qhvgsi8fro4&response_type=code&redirect_uri=http%3A%2F%2Flocalhost&scope=channel:read:redemptions')
+        temp_code = input()
+
+        resp = requests.post('https://id.twitch.tv/oauth2/token',
+        params={
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'grant_type': 'authorization_code',
+            'code': temp_code,
+            'redirect_uri': 'http://localhost'
+        }).json()
+        self.user_token = resp['access_token']
+        self.refresh_token = resp['refresh_token']
+
         # list of topics to subscribe to
         self.topics = [f"channel-points-channel-v1.{self.channel_id}"]
 
@@ -47,7 +66,7 @@ class Bot:
         if self.connection.open:
             print('Connection stablished. Client correcly connected')
             # Send greeting
-            message = {"type": "LISTEN", "nonce": str(self.generate_nonce()), "data":{"topics": self.topics, "auth_token": self.auth_token}}
+            message = {"type": "LISTEN", "nonce": str(self.generate_nonce()), "data":{"topics": self.topics, "auth_token": self.user_token}}
             await self.sendMessage(message)
 
     def generate_nonce(self):

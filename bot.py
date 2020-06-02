@@ -65,7 +65,6 @@ class Bot:
     async def receiveMessage(self):
         '''Receiving all server messages and handling them'''
         while not self.should_exit:
-            print('in recv')
             try:
                 message = await self.connection.recv()
                 print('Received message from server: ' + str(message))
@@ -81,11 +80,11 @@ class Bot:
         data_set = {"type": "PING"}
         json_request = json.dumps(data_set)
         while not self.should_exit:
-            print('in heartbeat')
             try:
                 if self.next_ping < datetime.now():
                     await self.sendMessage(json_request)
                     self.next_ping = datetime.now() + timedelta(seconds=60 + random.randint(1, 5))
+                    await asyncio.sleep(1)
             except websockets.exceptions.ConnectionClosed:
                 print('Connection with server closed')
                 break
@@ -101,11 +100,11 @@ async def main():
     keyboard.add_hotkey('ctrl+alt+1', lambda: keyboard_break(client))
     await client.connect()
     tasks = [
-        asyncio.ensure_future(client.heartbeat()),
-        asyncio.ensure_future(client.receiveMessage()),
+        asyncio.create_task(client.heartbeat()),
+        asyncio.create_task(client.receiveMessage()),
     ]
 
-    await asyncio.wait(tasks)
+    await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
     asyncio.run(main())

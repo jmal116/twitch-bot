@@ -88,32 +88,35 @@ class Bot:
 
     async def receiveMessage(self):
         '''Receiving all server messages and handling them'''
-        while not self.should_exit:
-            try:
-                message = await asyncio.wait_for(self.connection.recv(), 1)
-                print(f'Received message from server: {json.loads(message)}')
-                if json.loads(message)['type'] == 'RECONNECT':
-                    print('Reconnect message recieved, doing it')
-                    self.connection.close()
-                    await self.connect()
-            except asyncio.exceptions.TimeoutError:
-                continue
-            except websockets.exceptions.ConnectionClosed:
-                print('Connection with server closed, retrying')
+        try:
+            message = await asyncio.wait_for(self.connection.recv(), 1)
+            print(f'Received message from server: {message}')
+            if json.loads(message)['type'] == 'RECONNECT':
+                print('Reconnect message recieved, doing it')
+                self.connection.close()
                 await self.connect()
-                continue
+        except asyncio.exceptions.TimeoutError:
+            return
+        except websockets.exceptions.ConnectionClosed:
+            print('Connection with server closed, retrying')
+            await self.connect()
+            return
 
     async def heartbeat(self):
         '''
         Sending heartbeat to server every 1 minutes
         Ping - pong messages to verify/keep connection is alive
         '''
-        data_set = {"type": "PING"}
+        if self.next_ping < datetime.now():
+            data_set = {"type": "PING"}
+            await self.sendMessage(data_set)
+            self.next_ping = datetime.now() + timedelta(seconds=60 + random.randint(1, 5))
+
+    async def loop(self):
         while not self.should_exit:
-            if self.next_ping < datetime.now():
-                await self.sendMessage(data_set)
-                self.next_ping = datetime.now() + timedelta(seconds=60 + random.randint(1, 5))
-                await asyncio.sleep(1)
+            await self.heartbeat()
+            await self.receiveMessage()
+
 
 def keyboard_break(bot):
     while True:
@@ -125,12 +128,7 @@ async def main():
     client = Bot()
     keyboard.add_hotkey('ctrl+alt+1', lambda: keyboard_break(client))
     await client.connect()
-    tasks = [
-        asyncio.create_task(client.heartbeat()),
-        asyncio.create_task(client.receiveMessage()),
-    ]
-
-    await asyncio.gather(*tasks)
+    await client.loop()
 
 if __name__ == "__main__":
     asyncio.run(main())

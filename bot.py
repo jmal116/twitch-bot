@@ -48,8 +48,7 @@ class Bot:
             print('Connection stablished. Client correcly connected')
             # Send greeting
             message = {"type": "LISTEN", "nonce": str(self.generate_nonce()), "data":{"topics": self.topics, "auth_token": self.auth_token}}
-            json_message = json.dumps(message)
-            await self.sendMessage(json_message)
+            await self.sendMessage(message)
 
     def generate_nonce(self):
         '''Generate pseudo-random number and seconds since epoch (UTC).'''
@@ -59,18 +58,31 @@ class Bot:
 
     async def sendMessage(self, message):
         '''Sending message to webSocket server'''
-        print(f'sending {message}')
-        await self.connection.send(message)
+        json_message = json.dumps(message)
+        print(f'Sending to server: {message}')
+        try:
+            await self.connection.send(json_message)
+        except websockets.exceptions.ConnectionClosed:
+            print('Connection with server closed, retrying')
+            await self.connect()
+        
 
     async def receiveMessage(self):
         '''Receiving all server messages and handling them'''
         while not self.should_exit:
             try:
-                message = await self.connection.recv()
-                print('Received message from server: ' + str(message))
+                message = await asyncio.wait_for(self.connection.recv(), 1)
+                print(f'Received message from server: {json.loads(message)}')
+                if json.loads(message)['type'] == 'RECONNECT':
+                    print('Reconnect message recieved, doing it')
+                    self.connection.close()
+                    await self.connect()
+            except asyncio.exceptions.TimeoutError:
+                continue
             except websockets.exceptions.ConnectionClosed:
-                print('Connection with server closed')
-                break
+                print('Connection with server closed, retrying')
+                await self.connect()
+                continue
 
     async def heartbeat(self):
         '''
@@ -78,16 +90,11 @@ class Bot:
         Ping - pong messages to verify/keep connection is alive
         '''
         data_set = {"type": "PING"}
-        json_request = json.dumps(data_set)
         while not self.should_exit:
-            try:
-                if self.next_ping < datetime.now():
-                    await self.sendMessage(json_request)
-                    self.next_ping = datetime.now() + timedelta(seconds=60 + random.randint(1, 5))
-                    await asyncio.sleep(1)
-            except websockets.exceptions.ConnectionClosed:
-                print('Connection with server closed')
-                break
+            if self.next_ping < datetime.now():
+                await self.sendMessage(data_set)
+                self.next_ping = datetime.now() + timedelta(seconds=60 + random.randint(1, 5))
+                await asyncio.sleep(1)
 
 def keyboard_break(bot):
     while True:

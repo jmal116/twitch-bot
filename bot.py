@@ -75,6 +75,17 @@ class Bot:
         oauth_nonce = nonce.hex
         return oauth_nonce
 
+    async def refresh(self):
+        resp = requests.post('https://id.twitch.tv/oauth2/token--data-urlencode',
+        params={
+            'grant_type': 'refresh_token',
+            'refresh_token': self.refresh_token,
+            'client_id': self.client_id,
+            'client_secret': self.client_secret
+        }).json()
+        self.refresh_token = resp['refresh_token']
+        self.user_token = resp['access_token']
+
     async def sendMessage(self, message):
         '''Sending message to webSocket server'''
         json_message = json.dumps(message)
@@ -89,9 +100,9 @@ class Bot:
     async def receiveMessage(self):
         '''Receiving all server messages and handling them'''
         try:
-            message = await asyncio.wait_for(self.connection.recv(), 1)
+            message = json.loads(await asyncio.wait_for(self.connection.recv(), 1))
             print(f'Received message from server: {message}')
-            if json.loads(message)['type'] == 'RECONNECT':
+            if message['type'] == 'RECONNECT':
                 print('Reconnect message recieved, doing it')
                 self.connection.close()
                 await self.connect()
@@ -119,10 +130,8 @@ class Bot:
 
 
 def keyboard_break(bot):
-    while True:
-        if not bot.should_exit:
-            print('Exiting')
-            bot.should_exit = True
+    print('Exiting')
+    bot.should_exit = True
 
 async def main():
     client = Bot()

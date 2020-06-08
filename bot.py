@@ -4,6 +4,8 @@ import json
 import random
 from datetime import datetime, timedelta
 import webbrowser
+import os
+from threading import Thread
 
 import websockets
 import requests
@@ -25,6 +27,8 @@ class Bot:
         self.tts = pyttsx3.init()
         self.tts.setProperty('rate', 150)
         self.num_tts_redemptions = 0
+        self.num_tts_read = 0
+        self.is_speaking = False
 
         #Get an app access token
         self.auth_token = requests.post('https://id.twitch.tv/oauth2/token',
@@ -133,22 +137,34 @@ class Bot:
 
     def process_redemption(self, response):
         if response['data']['redemption']['reward']['id'] == TTS_REWARD_ID:
-            self.num_tts_redemptions += 1
             username = response['data']['redemption']['user']['display_name']
             text = response['data']['redemption']['user_input']
             self.tts.save_to_file(f'{username} has redeemed Text to Speech, saying {text}', f'tts_sounds\\tts-{self.num_tts_redemptions}.wav')
             self.tts.runAndWait()
+            self.num_tts_redemptions += 1
         #TODO bans
         
-
     def sound_check(self):
-        #blocks
-        playsound.playsound(r'tts_sounds\test.wav')
+        files = os.listdir('tts_sounds')
+        if files and not self.is_speaking:
+            self.is_speaking = True
+            Thread(target=self.play_next_sound).start()
+
+    def play_next_sound(self):
+        while self.is_speaking == True:
+            try:
+                playsound.playsound(f'tts_sounds\\tts-{self.num_tts_read}.wav')
+                self.num_tts_read += 1
+                self.is_speaking = False
+                return
+            except playsound.PlaysoundException:
+                continue
 
     async def loop(self):
         while not self.should_exit:
             await self.heartbeat()
             await self.receiveMessage()
+            self.sound_check()
 
 def keyboard_break(bot):
     print('Exiting')

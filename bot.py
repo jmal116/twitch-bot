@@ -8,6 +8,11 @@ import webbrowser
 import websockets
 import requests
 import keyboard
+import pyttsx3
+import playsound
+
+TTS_REWARD_ID = '259c7354-82f7-4d5b-90c7-d85a1434ddac'
+BAN_REWARD_ID = '7cda13cb-d15d-4652-89ac-a492b39d42a9'
 
 class Bot:
 
@@ -17,6 +22,9 @@ class Bot:
         self.connection = None
         self.should_exit = False
         self.next_ping = datetime.now()
+        self.tts = pyttsx3.init()
+        self.tts.setProperty('rate', 150)
+        self.num_tts_redemptions = 0
 
         #Get an app access token
         self.auth_token = requests.post('https://id.twitch.tv/oauth2/token',
@@ -54,19 +62,17 @@ class Bot:
         self.user_token = resp['access_token']
         self.refresh_token = resp['refresh_token']
 
-        # list of topics to subscribe to
-        self.topics = [f"channel-points-channel-v1.{self.channel_id}"]
-
     async def connect(self):
         '''
            Connecting to webSocket server
            websockets.client.connect returns a WebSocketClientProtocol, which is used to send and receive messages
         '''
+        topics = [f"channel-points-channel-v1.{self.channel_id}"]
         self.connection = await websockets.client.connect('wss://pubsub-edge.twitch.tv')
         if self.connection.open:
             print('Connection stablished. Client correcly connected')
             # Send greeting
-            message = {"type": "LISTEN", "nonce": str(self.generate_nonce()), "data":{"topics": self.topics, "auth_token": self.user_token}}
+            message = {"type": "LISTEN", "nonce": str(self.generate_nonce()), "data":{"topics": topics, "auth_token": self.user_token}}
             await self.sendMessage(message)
 
     def generate_nonce(self):
@@ -106,6 +112,8 @@ class Bot:
                 print('Reconnect message recieved, doing it')
                 self.connection.close()
                 await self.connect()
+            if message['type'] == 'MESSAGE':
+                self.process_redemption(json.loads(message['data']['message']))
         except asyncio.exceptions.TimeoutError:
             return
         except websockets.exceptions.ConnectionClosed:
@@ -123,11 +131,24 @@ class Bot:
             await self.sendMessage(data_set)
             self.next_ping = datetime.now() + timedelta(seconds=60 + random.randint(1, 5))
 
+    def process_redemption(self, response):
+        if response['data']['redemption']['reward']['id'] == TTS_REWARD_ID:
+            self.num_tts_redemptions += 1
+            username = response['data']['redemption']['user']['display_name']
+            text = response['data']['redemption']['user_input']
+            self.tts.save_to_file(f'{username} has redeemed Text to Speech, saying {text}', f'tts_sounds\\tts-{self.num_tts_redemptions}.wav')
+            self.tts.runAndWait()
+        #TODO bans
+        
+
+    def sound_check(self):
+        #blocks
+        playsound.playsound(r'tts_sounds\test.wav')
+
     async def loop(self):
         while not self.should_exit:
             await self.heartbeat()
             await self.receiveMessage()
-
 
 def keyboard_break(bot):
     print('Exiting')

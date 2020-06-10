@@ -5,7 +5,7 @@ import random
 from datetime import datetime, timedelta
 import webbrowser
 import os
-from threading import Thread
+from multiprocessing import Process, Value
 
 import websockets
 import requests
@@ -22,13 +22,13 @@ class Bot:
         self.client_id = 'lil5xkerbfl7lsj2pk1qhvgsi8fro4'
         self.client_secret = 'm33z33z1d60n67n2kev7iw54foo6db'
         self.connection = None
-        self.should_exit = False
         self.next_ping = datetime.now()
         self.tts = pyttsx3.init()
         self.tts.setProperty('rate', 150)
         self.num_tts_redemptions = 0
-        self.num_tts_read = 0
-        self.is_speaking = False
+        self.num_tts_read = Value('i', 0)
+        self.is_speaking = Value('b', False)
+        self.sound_process = None
 
         #Get an app access token
         self.auth_token = requests.post('https://id.twitch.tv/oauth2/token',
@@ -146,29 +146,36 @@ class Bot:
         
     def sound_check(self):
         files = os.listdir('tts_sounds')
-        if files and not self.is_speaking:
-            self.is_speaking = True
-            Thread(target=self.play_next_sound).start()
-
-    def play_next_sound(self):
-        while self.is_speaking == True:
-            try:
-                playsound.playsound(f'tts_sounds\\tts-{self.num_tts_read}.wav')
-                self.num_tts_read += 1
-                self.is_speaking = False
-                return
-            except playsound.PlaysoundException:
-                continue
+        if files and not self.is_speaking.value:
+            self.is_speaking.value = True
+            self.sound_process = Process(target=play_next_sound, args=(self.num_tts_read, self.is_speaking))
+            self.sound_process.start()
 
     async def loop(self):
-        while not self.should_exit:
+        while True:
             await self.heartbeat()
             await self.receiveMessage()
             self.sound_check()
 
+def play_next_sound(num_tts_read, is_speaking):
+    next_file = f'tts_sounds\\tts-{num_tts_read.value}.wav'
+    while is_speaking.value:
+        try:
+            playsound.playsound(next_file)
+            num_tts_read.value += 1
+            is_speaking.value = False
+            return
+        except playsound.PlaysoundException:
+            continue
+
 def keyboard_break(bot):
-    print('Exiting')
-    bot.should_exit = True
+    print('Skipping')
+    try:
+        bot.sound_process.terminate()
+        bot.num_tts_read.value += 1
+        bot.is_speaking.value = False
+    except Exception:
+        print('Nothing to skipo')
 
 async def main():
     client = Bot()
@@ -177,4 +184,6 @@ async def main():
     await client.loop()
 
 if __name__ == "__main__":
+    for name in os.listdir('tts_sounds'):
+        os.remove(f'tts_sounds\\{name}')
     asyncio.run(main())

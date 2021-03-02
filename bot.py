@@ -15,6 +15,8 @@ import playsound
 
 TTS_REWARD_ID = '259c7354-82f7-4d5b-90c7-d85a1434ddac'
 BAN_REWARD_ID = '7cda13cb-d15d-4652-89ac-a492b39d42a9'
+QUACK_ID = 'e0f41bbb-7c09-4767-91e3-f586438ee411'
+BIG_QUACK_ID = '5e12b9ef-b5ae-448f-ac11-3caa5607531b'
 
 class Bot:
 
@@ -136,13 +138,20 @@ class Bot:
             self.next_ping = datetime.now() + timedelta(seconds=60 + random.randint(1, 5))
 
     def process_redemption(self, response):
-        if response['data']['redemption']['reward']['id'] == TTS_REWARD_ID:
+        reward_id = response['data']['redemption']['reward']['id']
+        if reward_id == TTS_REWARD_ID:
             username = response['data']['redemption']['user']['display_name']
             text = response['data']['redemption']['user_input']
             self.tts.save_to_file(f'{username} has redeemed Text to Speech, saying {text}', f'tts_sounds\\tts-{self.num_tts_redemptions}.wav')
             self.tts.runAndWait()
             self.num_tts_redemptions += 1
-        #TODO bans
+        elif reward_id == QUACK_ID:
+            play_sound_effect('quack')
+        elif reward_id == BIG_QUACK_ID:
+            play_sound_effect('many_quack')
+        elif reward_id == BAN_REWARD_ID:
+            #TODO auto ban
+            pass
         
     def sound_check(self):
         files = os.listdir('tts_sounds')
@@ -156,6 +165,10 @@ class Bot:
             await self.heartbeat()
             await self.receiveMessage()
             self.sound_check()
+
+def play_sound_effect(filename):
+    sound_file = f'sound_effects\\{filename}.wav'
+    Process(target=playsound.playsound, args=(sound_file,)).start()
 
 def play_next_sound(num_tts_read, is_speaking):
     next_file = f'tts_sounds\\tts-{num_tts_read.value}.wav'

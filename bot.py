@@ -23,17 +23,18 @@ class Bot:
     def __init__(self):
         self.client_id = 'lil5xkerbfl7lsj2pk1qhvgsi8fro4'
         self.client_secret = 'm33z33z1d60n67n2kev7iw54foo6db'
-        self.connection = None
+        self.pubsub_connection = None
+        self.irc_connection = None
         self.next_ping = datetime.now()
         self.tts = pyttsx3.init()
         self.tts.setProperty('rate', 150)
         self.num_tts_redemptions = 0
         self.num_tts_read = Value('i', 0)
         self.is_speaking = Value('b', False)
-        self.sound_process = None
+        self.tts_process = None
 
         #Get an app access token
-        self.auth_token = requests.post('https://id.twitch.tv/oauth2/token',
+        self.app_access_token = requests.post('https://id.twitch.tv/oauth2/token',
         params={
             'client_id': self.client_id,
             'client_secret': self.client_secret,
@@ -45,18 +46,21 @@ class Bot:
         self.channel_id = requests.get('https://api.twitch.tv/helix/users',
         headers={
             'Client-Id': self.client_id,
-            'Authorization': f'Bearer {self.auth_token}'
+            'Authorization': f'Bearer {self.app_access_token}'
         },
         params={
             'login': 'jmal116'
         }).json()['data'][0]['id']
         print('Successfully fetched channel id')
 
-        #Get authorization code from user
-        print('Paste code from the URL you were redirected to:\n')
-        webbrowser.open(r'https://id.twitch.tv/oauth2/authorize?client_id=lil5xkerbfl7lsj2pk1qhvgsi8fro4&response_type=code&redirect_uri=http%3A%2F%2Flocalhost&scope=channel:read:redemptions')
-        temp_code = input()
+        print('Paste code for the chatbot account:\n')
+        self.chatbot_token, _ = self.get_user_tokens()
+        print('Paste code for the main channel:\n')
+        self.user_token, self.refresh_token = self.get_user_tokens()
 
+    def get_user_tokens(self):
+        webbrowser.open(r'https://id.twitch.tv/oauth2/authorize?client_id=lil5xkerbfl7lsj2pk1qhvgsi8fro4&response_type=code&redirect_uri=http%3A%2F%2Flocalhost&force_verify=true&scope=channel:read:redemptions%20channel:moderate%20chat:edit%20chat:read')
+        temp_code = input()
         resp = requests.post('https://id.twitch.tv/oauth2/token',
         params={
             'client_id': self.client_id,
@@ -65,21 +69,30 @@ class Bot:
             'code': temp_code,
             'redirect_uri': 'http://localhost'
         }).json()
-        self.user_token = resp['access_token']
-        self.refresh_token = resp['refresh_token']
+        return resp['access_token'], resp['refresh_token']
 
-    async def connect(self):
+    async def connect_pubsub(self):
         '''
            Connecting to webSocket server
            websockets.client.connect returns a WebSocketClientProtocol, which is used to send and receive messages
         '''
         topics = [f"channel-points-channel-v1.{self.channel_id}"]
-        self.connection = await websockets.client.connect('wss://pubsub-edge.twitch.tv')
-        if self.connection.open:
-            print('Connection stablished. Client correcly connected')
+        self.pubsub_connection = await websockets.client.connect('wss://pubsub-edge.twitch.tv')
+        if self.pubsub_connection.open:
+            print('Pubsub connection established. Client correcly connected')
             # Send greeting
             message = {"type": "LISTEN", "nonce": str(self.generate_nonce()), "data":{"topics": topics, "auth_token": self.user_token}}
-            await self.sendMessage(message)
+            await self.send_pubsub(message)
+
+    async def connect_irc(self):
+        self.irc_connection = await websockets.client.connect('wss://irc-ws.chat.twitch.tv:443')
+        if self.irc_connection.open:
+            print('IRC connection established.')
+            await self.send_irc(f'PASS oauth:{self.chatbot_token}')
+            await self.recieve_irc()
+            await self.send_irc('NICK therealmrspancakes')
+            await self.recieve_irc()
+            await self.send_irc('JOIN #jmal116')
 
     def generate_nonce(self):
         '''Generate pseudo-random number and seconds since epoch (UTC).'''
@@ -87,7 +100,7 @@ class Bot:
         oauth_nonce = nonce.hex
         return oauth_nonce
 
-    async def refresh(self):
+    async def refresh_pubsub(self):
         resp = requests.post('https://id.twitch.tv/oauth2/token--data-urlencode',
         params={
             'grant_type': 'refresh_token',
@@ -98,44 +111,66 @@ class Bot:
         self.refresh_token = resp['refresh_token']
         self.user_token = resp['access_token']
 
-    async def sendMessage(self, message):
+    async def send_pubsub(self, message):
         '''Sending message to webSocket server'''
         json_message = json.dumps(message)
-        print(f'Sending to server: {message}')
+        print(f'Sending to pubsub: {message}')
         try:
-            await self.connection.send(json_message)
+            await self.pubsub_connection.send(json_message)
         except websockets.exceptions.ConnectionClosed:
             print('Connection with server closed, retrying')
-            await self.connect()
+            await self.connect_pubsub()
         
 
-    async def receiveMessage(self):
+    async def receive_pubsub(self):
         '''Receiving all server messages and handling them'''
         try:
-            message = json.loads(await asyncio.wait_for(self.connection.recv(), 1))
-            print(f'Received message from server: {message}')
+            message = json.loads(await asyncio.wait_for(self.pubsub_connection.recv(), 1/60))
+            print(f'Received message from pubsub: {message}')
             if message['type'] == 'RECONNECT':
                 print('Reconnect message recieved, doing it')
-                self.connection.close()
-                await self.connect()
+                self.pubsub_connection.close()
+                await self.connect_pubsub()
             if message['type'] == 'MESSAGE':
+                # print(message)
                 self.process_redemption(json.loads(message['data']['message']))
         except asyncio.exceptions.TimeoutError:
             return
         except websockets.exceptions.ConnectionClosed:
-            print('Connection with server closed, retrying')
-            await self.connect()
+            print('Connection with pubsub server closed, retrying')
+            await self.connect_pubsub()
             return
 
-    async def heartbeat(self):
+    async def heartbeat_pubsub(self):
         '''
         Sending heartbeat to server every 1 minutes
         Ping - pong messages to verify/keep connection is alive
         '''
         if self.next_ping < datetime.now():
             data_set = {"type": "PING"}
-            await self.sendMessage(data_set)
+            await self.send_pubsub(data_set)
             self.next_ping = datetime.now() + timedelta(seconds=60 + random.randint(1, 5))
+
+    async def send_irc(self, message):
+        print(f'< {message}')
+        try:
+            await self.irc_connection.send(f'{message}')
+        except websockets.exceptions.ConnectionClosed:
+            print('Connection with IRC server closed, retrying')
+            await self.connect_irc()
+
+    async def recieve_irc(self):
+        try:
+            message = await asyncio.wait_for(self.irc_connection.recv(), 1/60)
+            print(f'> {message}')
+            if message[:4] == 'PING':
+                await self.send_irc('PONG :tmi.twitch.tv')
+        except asyncio.exceptions.TimeoutError:
+            return
+        except websockets.exceptions.ConnectionClosed:
+            print('Connection with IRC server closed, retrying')
+            await self.connect_irc()
+            return
 
     def process_redemption(self, response):
         reward_id = response['data']['redemption']['reward']['id']
@@ -153,24 +188,29 @@ class Bot:
             #TODO auto ban
             pass
         
-    def sound_check(self):
+    def tts_sound_check(self):
         files = os.listdir('tts_sounds')
         if files and not self.is_speaking.value:
             self.is_speaking.value = True
-            self.sound_process = Process(target=play_next_sound, args=(self.num_tts_read, self.is_speaking))
-            self.sound_process.start()
+            self.tts_process = Process(target=play_next_tts, args=(self.num_tts_read, self.is_speaking))
+            self.tts_process.start()
 
     async def loop(self):
+        in_ = False
         while True:
-            await self.heartbeat()
-            await self.receiveMessage()
-            self.sound_check()
+            await self.heartbeat_pubsub()
+            await self.receive_pubsub()
+            await self.recieve_irc()
+            self.tts_sound_check()
+            # if not in_:
+            #     await self.send_irc('PRIVMSG #jmal116 :LMAO GOT EM')
+            #     in_ = True
 
 def play_sound_effect(filename):
     sound_file = f'sound_effects\\{filename}.wav'
     Process(target=playsound.playsound, args=(sound_file,)).start()
 
-def play_next_sound(num_tts_read, is_speaking):
+def play_next_tts(num_tts_read, is_speaking):
     next_file = f'tts_sounds\\tts-{num_tts_read.value}.wav'
     while is_speaking.value:
         try:
@@ -193,7 +233,8 @@ def keyboard_break(bot):
 async def main():
     client = Bot()
     keyboard.add_hotkey('ctrl+alt+1', lambda: keyboard_break(client))
-    await client.connect()
+    await client.connect_pubsub()
+    await client.connect_irc()
     await client.loop()
 
 if __name__ == "__main__":

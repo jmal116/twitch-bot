@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import webbrowser
 import os
 from multiprocessing import Process, Value
+from pymongo import database
 
 import websockets
 import requests
@@ -17,6 +18,8 @@ TTS_REWARD_ID = '259c7354-82f7-4d5b-90c7-d85a1434ddac'
 BAN_REWARD_ID = '7cda13cb-d15d-4652-89ac-a492b39d42a9'
 QUACK_ID = 'e0f41bbb-7c09-4767-91e3-f586438ee411'
 BIG_QUACK_ID = '5e12b9ef-b5ae-448f-ac11-3caa5607531b'
+
+BAN_FILE = 'bans\\bans.txt'
 
 class Bot:
 
@@ -32,6 +35,7 @@ class Bot:
         self.num_tts_read = Value('i', 0)
         self.is_speaking = Value('b', False)
         self.tts_process = None
+
 
         #Get an app access token
         self.app_access_token = requests.post('https://id.twitch.tv/oauth2/token',
@@ -133,7 +137,7 @@ class Bot:
                 await self.connect_pubsub()
             if message['type'] == 'MESSAGE':
                 # print(message)
-                self.process_redemption(json.loads(message['data']['message']))
+                await self.process_redemption(json.loads(message['data']['message']))
         except asyncio.exceptions.TimeoutError:
             return
         except websockets.exceptions.ConnectionClosed:
@@ -143,13 +147,13 @@ class Bot:
 
     async def heartbeat_pubsub(self):
         '''
-        Sending heartbeat to server every 1 minutes
+        Sending heartbeat to server every 3 minutes
         Ping - pong messages to verify/keep connection is alive
         '''
         if self.next_ping < datetime.now():
             data_set = {"type": "PING"}
             await self.send_pubsub(data_set)
-            self.next_ping = datetime.now() + timedelta(seconds=60 + random.randint(1, 5))
+            self.next_ping = datetime.now() + timedelta(seconds=180 + random.randint(1, 5))
 
     async def send_irc(self, message):
         print(f'< {message}')
@@ -164,7 +168,7 @@ class Bot:
             message = await asyncio.wait_for(self.irc_connection.recv(), 1/60)
             print(f'> {message}')
             if message[:4] == 'PING':
-                await self.send_irc('PONG :tmi.twitch.tv')
+                await self.send_irc('PONG')
         except asyncio.exceptions.TimeoutError:
             return
         except websockets.exceptions.ConnectionClosed:
@@ -172,10 +176,13 @@ class Bot:
             await self.connect_irc()
             return
 
-    def process_redemption(self, response):
+    async def send_chat_message(self, message):
+        await self.send_irc(f'PRIVMSG #jmal116 :{message}')
+
+    async def process_redemption(self, response):
         reward_id = response['data']['redemption']['reward']['id']
+        username = response['data']['redemption']['user']['display_name']
         if reward_id == TTS_REWARD_ID:
-            username = response['data']['redemption']['user']['display_name']
             text = response['data']['redemption']['user_input']
             self.tts.save_to_file(f'{username} has redeemed Text to Speech, saying {text}', f'tts_sounds\\tts-{self.num_tts_redemptions}.wav')
             self.tts.runAndWait()
@@ -185,8 +192,7 @@ class Bot:
         elif reward_id == BIG_QUACK_ID:
             play_sound_effect('many_quack')
         elif reward_id == BAN_REWARD_ID:
-            #TODO auto ban
-            pass
+            await self.ban_user(username)
         
     def tts_sound_check(self):
         files = os.listdir('tts_sounds')
@@ -194,17 +200,28 @@ class Bot:
             self.is_speaking.value = True
             self.tts_process = Process(target=play_next_tts, args=(self.num_tts_read, self.is_speaking))
             self.tts_process.start()
+            
+    async def ban_user(self, username):
+        await self.send_chat_message(f'@{username} has chosen death. Good riddance.')
+        await self.send_chat_message(f'/ban {username}')
+        with open(BAN_FILE, 'a') as file:
+            file.write(username)
+
+    async def unban_users(self):
+        with open(BAN_FILE) as file:
+            for username in file:
+                await self.send_chat_message(f'/unban {username}')
+        os.remove(BAN_FILE)
+        with open(BAN_FILE, 'w') as _:
+            pass
+
 
     async def loop(self):
-        in_ = False
         while True:
             await self.heartbeat_pubsub()
             await self.receive_pubsub()
             await self.recieve_irc()
             self.tts_sound_check()
-            # if not in_:
-            #     await self.send_irc('PRIVMSG #jmal116 :LMAO GOT EM')
-            #     in_ = True
 
 def play_sound_effect(filename):
     sound_file = f'sound_effects\\{filename}.wav'
@@ -235,9 +252,17 @@ async def main():
     keyboard.add_hotkey('ctrl+alt+1', lambda: keyboard_break(client))
     await client.connect_pubsub()
     await client.connect_irc()
+    await client.unban_users()
     await client.loop()
 
 if __name__ == "__main__":
+    if not os.path.isdir('tts_sounds'):
+        os.mkdir('tts_sounds')
+    if not os.path.isdir('bans'):
+        os.mkdir('bans')
+    if not os.path.isfile(BAN_FILE):
+        with open(BAN_FILE, 'w') as _:
+            pass
     for name in os.listdir('tts_sounds'):
         os.remove(f'tts_sounds\\{name}')
     asyncio.run(main())

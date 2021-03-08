@@ -205,7 +205,7 @@ class Bot:
         await self.send_chat_message(f'@{username} has chosen death. Good riddance.')
         await self.send_chat_message(f'/ban {username}')
         with open(BAN_FILE, 'a') as file:
-            file.write(username)
+            file.write(f'{username}\n')
 
     async def unban_users(self):
         with open(BAN_FILE) as file:

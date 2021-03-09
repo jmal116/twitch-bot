@@ -27,7 +27,7 @@ class Bot:
         self.client_id = 'lil5xkerbfl7lsj2pk1qhvgsi8fro4'
         self.client_secret = 'm33z33z1d60n67n2kev7iw54foo6db'
         self.pubsub_connection = None
-        self.irc_connection = None
+        self.chat_connection = None
         self.next_ping = datetime.now()
         self.tts = pyttsx3.init()
         self.tts.setProperty('rate', 150)
@@ -88,15 +88,25 @@ class Bot:
             message = {"type": "LISTEN", "nonce": str(self.generate_nonce()), "data":{"topics": topics, "auth_token": self.user_token}}
             await self.send_pubsub(message)
 
-    async def connect_irc(self):
-        self.irc_connection = await websockets.client.connect('wss://irc-ws.chat.twitch.tv:443')
-        if self.irc_connection.open:
-            print('IRC connection established.')
-            await self.send_irc(f'PASS oauth:{self.chatbot_token}')
-            await self.recieve_irc()
-            await self.send_irc('NICK therealmrspancakes')
-            await self.recieve_irc()
-            await self.send_irc('JOIN #jmal116')
+    async def connect_chatbot(self):
+        self.chat_connection = await websockets.client.connect('wss://irc-ws.chat.twitch.tv:443')
+        if self.chat_connection.open:
+            print('chatbot connection established.')
+            await self.send_irc(f'PASS oauth:{self.chatbot_token}', self.chat_connection)
+            await self.recieve_irc(self.chat_connection)
+            await self.send_irc('NICK therealmrspancakes', self.chat_connection)
+            await self.recieve_irc(self.chat_connection)
+            await self.send_irc('JOIN #jmal116', self.chat_connection)
+
+    async def connect_command(self):
+        self.command_connection = await websockets.client.connect('wss://irc-ws.chat.twitch.tv:443')
+        if self.command_connection.open:
+            print('command connection established.')
+            await self.send_irc(f'PASS oauth:{self.user_token}', self.command_connection)
+            await self.recieve_irc(self.command_connection)
+            await self.send_irc('NICK jmal116', self.command_connection)
+            await self.recieve_irc(self.command_connection)
+            await self.send_irc('JOIN #jmal116', self.command_connection)
 
     def generate_nonce(self):
         '''Generate pseudo-random number and seconds since epoch (UTC).'''
@@ -118,11 +128,11 @@ class Bot:
     async def send_pubsub(self, message):
         '''Sending message to webSocket server'''
         json_message = json.dumps(message)
-        print(f'Sending to pubsub: {message}')
+        # print(f'Sending to pubsub: {message}')
         try:
             await self.pubsub_connection.send(json_message)
         except websockets.exceptions.ConnectionClosed:
-            print('Connection with server closed, retrying')
+            print('Connection with pubsub closed, retrying')
             await self.connect_pubsub()
         
 
@@ -130,20 +140,19 @@ class Bot:
         '''Receiving all server messages and handling them'''
         try:
             message = json.loads(await asyncio.wait_for(self.pubsub_connection.recv(), 1/60))
-            print(f'Received message from pubsub: {message}')
+            # print(f'Received message from pubsub: {message}')
             if message['type'] == 'RECONNECT':
-                print('Reconnect message recieved, doing it')
+                print('pubsub reconnect message recieved, doing it')
                 self.pubsub_connection.close()
                 await self.connect_pubsub()
             if message['type'] == 'MESSAGE':
-                # print(message)
+                print(message)
                 await self.process_redemption(json.loads(message['data']['message']))
         except asyncio.exceptions.TimeoutError:
             return
         except websockets.exceptions.ConnectionClosed:
             print('Connection with pubsub server closed, retrying')
             await self.connect_pubsub()
-            return
 
     async def heartbeat_pubsub(self):
         '''
@@ -155,29 +164,33 @@ class Bot:
             await self.send_pubsub(data_set)
             self.next_ping = datetime.now() + timedelta(seconds=180 + random.randint(1, 5))
 
-    async def send_irc(self, message):
-        print(f'< {message}')
+    async def send_irc(self, message, connection):
+        # print(f'< {message}')
         try:
-            await self.irc_connection.send(f'{message}')
+            await connection.send(f'{message}')
         except websockets.exceptions.ConnectionClosed:
             print('Connection with IRC server closed, retrying')
-            await self.connect_irc()
+            await self.connect_chatbot()
+            await self.connect_command()
 
-    async def recieve_irc(self):
+    async def recieve_irc(self, connection):
         try:
-            message = await asyncio.wait_for(self.irc_connection.recv(), 1/60)
-            print(f'> {message}')
+            message = await asyncio.wait_for(connection.recv(), 1/60)
+            # print(f'> {message}')
             if message[:4] == 'PING':
-                await self.send_irc('PONG')
+                await self.send_irc('PONG', connection)
         except asyncio.exceptions.TimeoutError:
             return
         except websockets.exceptions.ConnectionClosed:
             print('Connection with IRC server closed, retrying')
-            await self.connect_irc()
-            return
+            await self.connect_chatbot()
+            await self.connect_command()
 
     async def send_chat_message(self, message):
-        await self.send_irc(f'PRIVMSG #jmal116 :{message}')
+        await self.send_irc(f'PRIVMSG #jmal116 :{message}', self.chat_connection)
+
+    async def send_command(self, cmd):
+        await self.send_irc(f'PRIVMSG #jmal116 :{cmd}', self.command_connection)
 
     async def process_redemption(self, response):
         reward_id = response['data']['redemption']['reward']['id']
@@ -203,14 +216,14 @@ class Bot:
             
     async def ban_user(self, username):
         await self.send_chat_message(f'@{username} has chosen death. Good riddance.')
-        await self.send_chat_message(f'/ban {username}')
+        await self.send_command(f'ban {username}')
         with open(BAN_FILE, 'a') as file:
             file.write(f'{username}\n')
 
     async def unban_users(self):
         with open(BAN_FILE) as file:
             for username in file:
-                await self.send_chat_message(f'/unban {username}')
+                await self.send_command(f'unban {username}')
         os.remove(BAN_FILE)
         with open(BAN_FILE, 'w') as _:
             pass
@@ -220,7 +233,8 @@ class Bot:
         while True:
             await self.heartbeat_pubsub()
             await self.receive_pubsub()
-            await self.recieve_irc()
+            await self.recieve_irc(self.command_connection)
+            await self.recieve_irc(self.chat_connection)
             self.tts_sound_check()
 
 def play_sound_effect(filename):
@@ -251,7 +265,8 @@ async def main():
     client = Bot()
     keyboard.add_hotkey('ctrl+alt+1', lambda: keyboard_break(client))
     await client.connect_pubsub()
-    await client.connect_irc()
+    await client.connect_chatbot()
+    await client.connect_command()
     await client.unban_users()
     await client.loop()
 

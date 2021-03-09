@@ -216,14 +216,14 @@ class Bot:
             
     async def ban_user(self, username):
         await self.send_chat_message(f'@{username} has chosen death. Good riddance.')
-        await self.send_command(f'ban {username}')
+        await self.send_command(f'/ban {username}')
         with open(BAN_FILE, 'a') as file:
             file.write(f'{username}\n')
 
     async def unban_users(self):
         with open(BAN_FILE) as file:
             for username in file:
-                await self.send_command(f'unban {username}')
+                await self.send_command(f'/unban {username}')
         os.remove(BAN_FILE)
         with open(BAN_FILE, 'w') as _:
             pass

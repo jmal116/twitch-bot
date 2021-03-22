@@ -6,7 +6,8 @@ from datetime import datetime, timedelta
 import webbrowser
 import os
 from multiprocessing import Process, Value
-from pymongo import database
+from collections import namedtuple
+import re
 
 import websockets
 import requests
@@ -20,6 +21,8 @@ QUACK_ID = 'e0f41bbb-7c09-4767-91e3-f586438ee411'
 BIG_QUACK_ID = '5e12b9ef-b5ae-448f-ac11-3caa5607531b'
 
 BAN_FILE = 'bans\\bans.txt'
+
+ChatMessage = namedtuple('ChatMessage', ['user', 'message', 'command'])
 
 class Bot:
 
@@ -57,13 +60,14 @@ class Bot:
         }).json()['data'][0]['id']
         print('Successfully fetched channel id')
 
-        print('Paste code for the chatbot account:\n')
-        self.chatbot_token, _ = self.get_user_tokens()
+        # print('Paste code for the chatbot account:\n')
+        # self.chatbot_token, _ = self.get_user_tokens()
         print('Paste code for the main channel:\n')
         self.user_token, self.refresh_token = self.get_user_tokens()
+        self.chatbot_token = self.user_token
 
     def get_user_tokens(self):
-        webbrowser.open(r'https://id.twitch.tv/oauth2/authorize?client_id=lil5xkerbfl7lsj2pk1qhvgsi8fro4&response_type=code&redirect_uri=http%3A%2F%2Flocalhost&force_verify=true&scope=channel:read:redemptions%20channel:moderate%20chat:edit%20chat:read')
+        webbrowser.open(r'https://id.twitch.tv/oauth2/authorize?client_id=lil5xkerbfl7lsj2pk1qhvgsi8fro4&response_type=code&redirect_uri=http%3A%2F%2Flocalhost&force_verify=false&scope=channel:read:redemptions%20channel:moderate%20chat:edit%20chat:read')
         temp_code = input()
         resp = requests.post('https://id.twitch.tv/oauth2/token',
         params={
@@ -173,12 +177,21 @@ class Bot:
             await self.connect_chatbot()
             await self.connect_command()
 
-    async def recieve_irc(self, connection):
+    async def recieve_irc(self, connection, parse_message=False):
         try:
             message = await asyncio.wait_for(connection.recv(), 1/60)
+            message = message.strip()
             # print(f'> {message}')
             if message[:4] == 'PING':
                 await self.send_irc('PONG', connection)
+            elif parse_message:
+                parsed = self.parse_chat(message)
+                if not parsed:
+                    # this shouldn't ever happen, but it probably will at some point because I put ~2 minutes of thought into this solution
+                    return
+                if parsed.command:
+                    await self.process_chat_command(parsed)
+                
         except asyncio.exceptions.TimeoutError:
             return
         except websockets.exceptions.ConnectionClosed:
@@ -191,6 +204,34 @@ class Bot:
 
     async def send_command(self, cmd):
         await self.send_irc(f'PRIVMSG #jmal116 :{cmd}', self.command_connection)
+
+    def parse_chat(self, msg):
+        result = re.search(r'^:(.*?)!\1@\1.tmi.twitch.tv PRIVMSG #jmal116 :(.*?)$', msg)
+        if result:
+            user = result[1]
+            message = result[2]
+            command = (re.search(r'!([^\W]*)', message) or {1: None})[1]
+            return ChatMessage(user, message, command)
+        return None
+
+    async def process_chat_command(self, message):
+        cmd = message.command
+        if cmd == 'thonk':
+            await self.send_chat_message('⠀⠰⡿⠿⠛⠛⠻⠿⣷')
+            await self.send_chat_message('⠀⠀⠀⠀⠀⠀⣀⣄⡀⠀⠀⠀⠀⢀⣀⣀⣤⣄⣀⡀')
+            await self.send_chat_message('⠀⠀⠀⠀⠀⢸⣿⣿⣷⠀⠀⠀⠀⠛⠛⣿⣿⣿⡛⠿⠷')
+            await self.send_chat_message('⠀⠀⠀⠀⠀⠘⠿⠿⠋⠀⠀⠀⠀⠀⠀⣿⣿⣿⠇')
+            await self.send_chat_message('⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠁')
+            await self.send_chat_message('')
+            await self.send_chat_message('⠀⠀⠀⠀⣿⣷⣄⠀⢶⣶⣷⣶⣶⣤⣀')
+            await self.send_chat_message('⠀⠀⠀⠀⣿⣿⣿⠀⠀⠀⠀⠀⠈⠙⠻⠗')
+            await self.send_chat_message('⠀⠀⠀⣰⣿⣿⣿⠀⠀⠀⠀⢀⣀⣠⣤⣴⣶⡄')
+            await self.send_chat_message('⠀⣠⣾⣿⣿⣿⣥⣶⣶⣿⣿⣿⣿⣿⠿⠿⠛⠃')
+            await self.send_chat_message('⢰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄')
+            await self.send_chat_message('⢸⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡁')
+            await self.send_chat_message('⠈⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠁')
+            await self.send_chat_message('⠀⠀⠛⢿⣿⣿⣿⣿⣿⣿⡿⠟')
+            await self.send_chat_message('⠀⠀⠀⠀⠀⠉⠉⠉')
 
     async def process_redemption(self, response):
         reward_id = response['data']['redemption']['reward']['id']
@@ -234,7 +275,7 @@ class Bot:
             await self.heartbeat_pubsub()
             await self.receive_pubsub()
             await self.recieve_irc(self.command_connection)
-            await self.recieve_irc(self.chat_connection)
+            await self.recieve_irc(self.chat_connection, True)
             self.tts_sound_check()
 
 def play_sound_effect(filename):

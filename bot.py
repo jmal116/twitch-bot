@@ -206,11 +206,11 @@ class Bot:
         await self.send_irc(f'PRIVMSG #jmal116 :{cmd}', self.command_connection)
 
     def parse_chat(self, msg):
-        result = re.search(r'^:(.*?)!\1@\1.tmi.twitch.tv PRIVMSG #jmal116 :(.*?)$', msg)
+        result = re.match(r'^:(.*?)!\1@\1.tmi.twitch.tv PRIVMSG #jmal116 :(.*?)$', msg)
         if result:
             user = result[1]
             message = result[2]
-            command = (re.search(r'!([^\W]*)', message) or {1: None})[1]
+            command = (re.match(r'!([^\W]*)', message) or {1: None})[1]
             return ChatMessage(user, message, command)
         return None
 

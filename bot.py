@@ -19,6 +19,7 @@ TTS_REWARD_ID = '259c7354-82f7-4d5b-90c7-d85a1434ddac'
 BAN_REWARD_ID = '7cda13cb-d15d-4652-89ac-a492b39d42a9'
 QUACK_ID = 'e0f41bbb-7c09-4767-91e3-f586438ee411'
 BIG_QUACK_ID = '5e12b9ef-b5ae-448f-ac11-3caa5607531b'
+GOT_EM_ID = "76f82a23-63a6-4799-906c-0d1cd6c1df3e"
 
 BAN_FILE = 'bans\\bans.txt'
 
@@ -245,6 +246,8 @@ class Bot:
             play_sound_effect('quack')
         elif reward_id == BIG_QUACK_ID:
             play_sound_effect('many_quack')
+        elif reward_id == GOT_EM_ID:
+            play_sound_effect('gotem')
         elif reward_id == BAN_REWARD_ID:
             await self.ban_user(username)
         

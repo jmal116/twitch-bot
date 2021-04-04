@@ -151,7 +151,7 @@ class Bot:
                 self.pubsub_connection.close()
                 await self.connect_pubsub()
             if message['type'] == 'MESSAGE':
-                print(message)
+                # print(message)
                 await self.process_redemption(json.loads(message['data']['message']))
         except asyncio.exceptions.TimeoutError:
             return
@@ -192,6 +192,8 @@ class Bot:
                     return
                 if parsed.command:
                     await self.process_chat_command(parsed)
+                else: 
+                    await self.process_plain_chat(parsed)
                 
         except asyncio.exceptions.TimeoutError:
             return
@@ -223,7 +225,6 @@ class Bot:
             await self.send_chat_message('⠀⠀⠀⠀⠀⢸⣿⣿⣷⠀⠀⠀⠀⠛⠛⣿⣿⣿⡛⠿⠷')
             await self.send_chat_message('⠀⠀⠀⠀⠀⠘⠿⠿⠋⠀⠀⠀⠀⠀⠀⣿⣿⣿⠇')
             await self.send_chat_message('⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠁')
-            await self.send_chat_message('')
             await self.send_chat_message('⠀⠀⠀⠀⣿⣷⣄⠀⢶⣶⣷⣶⣶⣤⣀')
             await self.send_chat_message('⠀⠀⠀⠀⣿⣿⣿⠀⠀⠀⠀⠀⠈⠙⠻⠗')
             await self.send_chat_message('⠀⠀⠀⣰⣿⣿⣿⠀⠀⠀⠀⢀⣀⣠⣤⣴⣶⡄')
@@ -233,6 +234,10 @@ class Bot:
             await self.send_chat_message('⠈⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠁')
             await self.send_chat_message('⠀⠀⠛⢿⣿⣿⣿⣿⣿⣿⡿⠟')
             await self.send_chat_message('⠀⠀⠀⠀⠀⠉⠉⠉')
+
+    async def process_plain_chat(self, message: ChatMessage):
+        if "so brave" in message.message.lower():
+            await self.send_chat_message('So soggy!')
 
     async def process_redemption(self, response):
         reward_id = response['data']['redemption']['reward']['id']

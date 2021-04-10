@@ -238,6 +238,8 @@ class Bot:
     async def process_plain_chat(self, message: ChatMessage):
         if "so brave" in message.message.lower():
             await self.send_chat_message('So soggy!')
+        if "bad water" in message.message.lower():
+            await self.send_chat_message('Sad water!')
 
     async def process_redemption(self, response):
         reward_id = response['data']['redemption']['reward']['id']

@@ -32,6 +32,7 @@ class Bot:
         self.client_secret = 'm33z33z1d60n67n2kev7iw54foo6db'
         self.pubsub_connection = None
         self.chat_connection = None
+        self.conor_chat = None
         self.next_ping = datetime.now()
         self.tts = pyttsx3.init()
         self.tts.setProperty('rate', 150)
@@ -112,6 +113,16 @@ class Bot:
             await self.send_irc('NICK jmal116', self.command_connection)
             await self.recieve_irc(self.command_connection)
             await self.send_irc('JOIN #jmal116', self.command_connection)
+
+    async def connect_conor(self):
+        self.conor_chat = await websockets.client.connect('wss://irc-ws.chat.twitch.tv:443')
+        if self.conor_chat.open:
+            print('conor connection established.')
+            await self.send_irc(f'PASS oauth:{self.user_token}', self.conor_chat)
+            await self.recieve_irc(self.conor_chat)
+            await self.send_irc('NICK jmal116', self.conor_chat)
+            await self.recieve_irc(self.conor_chat)
+            await self.send_irc('JOIN #wespr_', self.conor_chat)
 
     def generate_nonce(self):
         '''Generate pseudo-random number and seconds since epoch (UTC).'''
@@ -205,6 +216,9 @@ class Bot:
     async def send_chat_message(self, message):
         await self.send_irc(f'PRIVMSG #jmal116 :{message}', self.chat_connection)
 
+    async def send_conor_message(self, message):
+        await self.send_irc(f'PRIVMSG #wespr_ :{message}', self.conor_chat)
+
     async def send_command(self, cmd):
         await self.send_irc(f'PRIVMSG #jmal116 :{cmd}', self.command_connection)
 
@@ -285,6 +299,7 @@ class Bot:
             await self.heartbeat_pubsub()
             await self.receive_pubsub()
             await self.recieve_irc(self.command_connection)
+            await self.recieve_irc(self.conor_chat)
             await self.recieve_irc(self.chat_connection, True)
             self.tts_sound_check()
 
@@ -312,12 +327,30 @@ def keyboard_break(bot):
     except Exception:
         print('Nothing to skipo')
 
+def fuck_with_conor(bot: Bot):
+    pool = [
+        'uwu',
+        '🤔',
+        '( ´･･)ﾉ(._.`)',
+        '(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
+        '(⌐■_■)',
+        '( •_•)>⌐■-■',
+        '( ͡°( ͡° ͜ʖ( ͡° ͜ʖ ͡°)ʖ ͡°) ͡°)',
+        '¯\_(ツ)_/¯',
+        '¯\_( ͡° ͜ʖ ͡°)_/¯',
+        "What the fuck did you just fucking say about me, you little bitch? I'll have you know I graduated top of my class in the Navy Seals, and I've been involved in numerous secret raids on Al-Quaeda, and I have over 300 confirmed kills. I am trained in gorilla warfare and I'm the top sniper in the entire US armed forces. You are nothing to me but just another target. I will wipe you the fuck out with precision the likes of which has never been seen before on this Earth, mark my fucking words. You thi",
+        '⁐'
+    ]
+    asyncio.run(bot.send_conor_message(random.choice(pool)))
+
 async def main():
     client = Bot()
     keyboard.add_hotkey('ctrl+alt+1', lambda: keyboard_break(client))
+    keyboard.add_hotkey('ctrl+alt+backspace', lambda: fuck_with_conor(client))
     await client.connect_pubsub()
     await client.connect_chatbot()
     await client.connect_command()
+    await client.connect_conor()
     await client.unban_users()
     await client.loop()
 

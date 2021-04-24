@@ -339,9 +339,11 @@ def fuck_with_conor(bot: Bot):
         '¯\_(ツ)_/¯',
         '¯\_( ͡° ͜ʖ ͡°)_/¯',
         "What the fuck did you just fucking say about me, you little bitch? I'll have you know I graduated top of my class in the Navy Seals, and I've been involved in numerous secret raids on Al-Quaeda, and I have over 300 confirmed kills. I am trained in gorilla warfare and I'm the top sniper in the entire US armed forces. You are nothing to me but just another target. I will wipe you the fuck out with precision the likes of which has never been seen before on this Earth, mark my fucking words. You thi",
-        '⁐'
+        'The FitnessGram™ Pacer Test is a multistage aerobic capacity test that progressively gets more difficult as it continues. The 20 meter pacer test will begin in 30 seconds. Line up at the start. The running speed starts slowly, but gets faster each minute after you hear this signal. [beep] A single lap should be completed each time you hear this sound. [ding] Remember to run in a straight line, and run as long as possible. The second time you fail to complete a lap before the sound, your test is over. The test will begin on the word start. On your mark, get ready, start.'
     ]
-    asyncio.run(bot.send_conor_message(random.choice(pool)))
+    choice = random.choice(pool)
+    asyncio.run(bot.send_conor_message(choice[:500]))
+    asyncio.run(bot.send_chat_message(f'Sending message to wespr_: {choice}'[:500]))
 
 async def main():
     client = Bot()

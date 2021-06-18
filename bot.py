@@ -8,6 +8,7 @@ import os
 from multiprocessing import Process, Value
 from collections import namedtuple
 import re
+import time
 
 import websockets
 import requests
@@ -21,6 +22,9 @@ QUACK_ID = 'e0f41bbb-7c09-4767-91e3-f586438ee411'
 BIG_QUACK_ID = '5e12b9ef-b5ae-448f-ac11-3caa5607531b'
 GOT_EM_ID = "76f82a23-63a6-4799-906c-0d1cd6c1df3e"
 WHOMSTDVE_ID = "9b42cebf-0958-416b-b712-5749326231eb"
+GROUND_REWARD_ID = "3bf0310b-4182-4673-9977-c1531650cc49"
+
+MINECRAFT_GAME_ID = '27471'
 
 BAN_FILE = 'bans\\bans.txt'
 
@@ -256,6 +260,17 @@ class Bot:
         if "bad water" in message.message.lower():
             await self.send_chat_message('Sad water!')
 
+    def throw_on_ground(self):
+        game_id =  requests.get('https://api.twitch.tv/helix/channels',
+            headers={
+                'Client-Id': self.client_id,
+                'Authorization': f'Bearer {self.app_access_token}'
+            },
+            params={
+                'broadcaster_id': self.channel_id
+            }).json()['data'][0]['game_id']
+        Process(target=throw_on_ground_helper, args=(game_id == MINECRAFT_GAME_ID,)).start()
+
     async def process_redemption(self, response):
         reward_id = response['data']['redemption']['reward']['id']
         username = response['data']['redemption']['user']['display_name']
@@ -274,6 +289,8 @@ class Bot:
             play_sound_effect('whomstdve')
         elif reward_id == BAN_REWARD_ID:
             await self.ban_user(username)
+        elif reward_id == GROUND_REWARD_ID:
+            self.throw_on_ground()
         
     def tts_sound_check(self):
         files = os.listdir('tts_sounds')
@@ -305,6 +322,12 @@ class Bot:
             await self.recieve_irc(self.conor_chat)
             await self.recieve_irc(self.chat_connection, True)
             self.tts_sound_check()
+
+def throw_on_ground_helper(throw):
+    play_sound_effect('ground')
+    if throw:
+        time.sleep(1.2)
+        keyboard.send('t')
 
 def play_sound_effect(filename):
     sound_file = f'sound_effects\\{filename}.wav'

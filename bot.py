@@ -9,6 +9,7 @@ from multiprocessing import Process, Value
 from collections import namedtuple
 import re
 import time
+import sys
 
 import websockets
 import requests
@@ -32,7 +33,7 @@ ChatMessage = namedtuple('ChatMessage', ['user', 'message', 'command'])
 
 class Bot:
 
-    def __init__(self):
+    def __init__(self, restream_link=None):
         self.client_id = 'lil5xkerbfl7lsj2pk1qhvgsi8fro4'
         self.client_secret = 'm33z33z1d60n67n2kev7iw54foo6db'
         self.pubsub_connection = None
@@ -45,6 +46,13 @@ class Bot:
         self.num_tts_read = Value('i', 0)
         self.is_speaking = Value('b', False)
         self.tts_process = None
+        self.next_reminder = datetime.now()
+        if restream_link is not None:
+            self.do_reminder = True
+            self.restream_link = restream_link
+        else:
+            self.do_reminder = False
+            self.restream_link = None
 
 
         #Get an app access token
@@ -237,6 +245,8 @@ class Bot:
         return None
 
     async def process_chat_command(self, message):
+        if self.do_reminder:
+            return
         cmd = message.command
         if cmd == 'thonk':
             await self.send_chat_message('⠀⠰⡿⠿⠛⠛⠻⠿⣷')
@@ -255,6 +265,8 @@ class Bot:
             await self.send_chat_message('⠀⠀⠀⠀⠀⠉⠉⠉')
 
     async def process_plain_chat(self, message: ChatMessage):
+        if self.do_reminder:
+            return
         if "so brave" in message.message.lower():
             await self.send_chat_message('So soggy!')
         if "bad water" in message.message.lower():
@@ -272,6 +284,8 @@ class Bot:
         Process(target=throw_on_ground_helper, args=(game_id == MINECRAFT_GAME_ID,)).start()
 
     async def process_redemption(self, response):
+        if self.do_reminder:
+            return
         reward_id = response['data']['redemption']['reward']['id']
         username = response['data']['redemption']['user']['display_name']
         if reward_id == TTS_REWARD_ID:
@@ -313,6 +327,11 @@ class Bot:
         with open(BAN_FILE, 'w') as _:
             pass
 
+    async def check_reminder(self):
+        if self.do_reminder and self.next_reminder < datetime.now():
+            await self.send_chat_message(f"This game is for the Ori rando tourney. You can view the restream for the tourney at {self.restream_link} . I'm not reading chat, have my mic turned off, and have disabled all channel rewards and chatbot features.")
+            self.next_reminder = datetime.now() + timedelta(minutes=5)
+
 
     async def loop(self):
         while True:
@@ -321,6 +340,7 @@ class Bot:
             await self.recieve_irc(self.command_connection)
             await self.recieve_irc(self.conor_chat)
             await self.recieve_irc(self.chat_connection, True)
+            await self.check_reminder()
             self.tts_sound_check()
 
 def throw_on_ground_helper(throw):
@@ -375,7 +395,11 @@ def fuck_with_conor(bot: Bot):
     asyncio.run(bot.send_chat_message(f'Sending message to wespr_: {choice}'[:500]))
 
 async def main():
-    client = Bot()
+    if len(sys.argv) == 1:
+        link = None
+    else:
+        link = sys.argv[1]
+    client = Bot(link)
     keyboard.add_hotkey('ctrl+alt+1', lambda: keyboard_break(client))
     keyboard.add_hotkey('ctrl+alt+backspace', lambda: fuck_with_conor(client))
     await client.connect_pubsub()

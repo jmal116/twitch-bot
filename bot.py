@@ -41,6 +41,7 @@ class Bot:
         self.conor_chat = None
         self.next_ping = datetime.now()
         self.tts = pyttsx3.init()
+        self.tts.setProperty('volume', 1.5)
         self.tts.setProperty('rate', 150)
         self.num_tts_redemptions = 0
         self.num_tts_read = Value('i', 0)

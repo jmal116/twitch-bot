@@ -1,21 +1,21 @@
 import asyncio
-import uuid
 import json
-import random
-from datetime import datetime, timedelta
-import webbrowser
 import os
-from multiprocessing import Process, Value
-from collections import namedtuple
+import random
 import re
-import time
 import sys
+import time
+import uuid
+import webbrowser
+from collections import namedtuple
+from datetime import datetime, timedelta
+from multiprocessing import Process, Value
 
-import websockets
-import requests
 import keyboard
-import pyttsx3
 import playsound
+import pyttsx3
+import requests
+import websockets
 
 TTS_REWARD_ID = '259c7354-82f7-4d5b-90c7-d85a1434ddac'
 BAN_REWARD_ID = '7cda13cb-d15d-4652-89ac-a492b39d42a9'
@@ -330,8 +330,8 @@ class Bot:
 
     async def check_reminder(self):
         if self.do_reminder and self.next_reminder < datetime.now():
-            await self.send_chat_message(f"This game is for the Ori rando tourney. You can view the restream for the tourney at {self.restream_link} . I'm not reading chat, have my mic turned off, and have disabled all channel rewards and chatbot features.")
-            self.next_reminder = datetime.now() + timedelta(minutes=5)
+            await self.send_chat_message(f"This game is a weekly Ori rando community race. You can view the restream for the race with commentary at {self.restream_link} . I'm not reading chat, have my mic turned off, and have disabled all channel rewards and chatbot features.")
+            self.next_reminder = datetime.now() + timedelta(minutes=1)
 
 
     async def loop(self):

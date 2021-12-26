@@ -1,0 +1,40 @@
+import random
+
+chars = [
+    'nathan',
+    'human man',
+    'lean',
+    'ice cream',
+    'dog',
+    'human fe-man',
+    'jailbird',
+    'maid',
+    'breadstick',
+    '420 blaze it',
+    'lemonade',
+    'monke',
+    'SUSI',
+    'feesh',
+    'mouth',
+    'squid',
+    'government drone',
+    'kesnia',
+    'rockstar', 
+    'party boi',
+    'rule 34',
+    'phone booth',
+    'Andy',
+    'Nibbs',
+    'tech gnome',
+    '4 eyes',
+    'baby',
+    'lawnmower',
+    'dad',
+    'fergy',
+    'the claaaaaaw',
+    'Zork',
+    'insect',
+    'space jam'
+]
+
+print(random.choice(chars))

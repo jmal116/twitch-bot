@@ -7,7 +7,7 @@ import sys
 import time
 import uuid
 import webbrowser
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from datetime import datetime, timedelta
 from multiprocessing import Process, Value
 
@@ -264,6 +264,23 @@ class Bot:
             await self.send_chat_message('⠈⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠁')
             await self.send_chat_message('⠀⠀⠛⢿⣿⣿⣿⣿⣿⣿⡿⠟')
             await self.send_chat_message('⠀⠀⠀⠀⠀⠉⠉⠉')
+        elif cmd == 'seed':
+            await self.send_current_seed()
+        else:
+            responses = {
+                'furnace': r'https://www.twitch.tv/videos/452470158',
+                'youtube': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
+                'twitter': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
+                'socials': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
+            }
+            to_send = responses.get(cmd, None)
+            if to_send is not None:
+                await self.send_chat_message(to_send)
+
+    async def send_current_seed(self):
+        with open('./current_seed.txt') as file:
+            url = file.readline()
+        await self.send_chat_message(url)
 
     async def process_plain_chat(self, message: ChatMessage):
         if self.do_reminder:
@@ -390,6 +407,7 @@ def fuck_with_conor(bot: Bot):
         'O-oooooooooo AAAAE-A-A-I-A-U- JO-oooooooooooo AAE-O-A-A-U-U-A- E-eee-ee-eee AAAAE-A-E-I-E-A-JO-ooo-oo-oo-oo EEEEO-A-AAA-AAAA',
         "I'm the Scatman Ski-bi dibby dib yo da dub dub Yo da dub dub Ski-bi dibby dib yo da dub dub Yo da dub dub (I'm the Scatman) Ski-bi dibby dib yo da dub dub Yo da dub dub Ski-bi dibby dib yo da dub dub Yo da dub dub Ba-da-ba-da-ba-be bop bop bodda bope Bop ba bodda bope Be bop ba bodda bope Bop ba bodda Ba-da-ba-da-ba-be bop ba bodda bope Bop ba bodda bope Be bop ba bodda bope Bop ba bodda bope Ski-bi dibby dib yo da dub dub",
         'Good luck on your rando!',
+        'jmal11HideBashS',
     ]
     choice = random.choice(pool)
     asyncio.run(bot.send_conor_message(choice[:500]))

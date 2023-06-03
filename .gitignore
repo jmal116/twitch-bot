@@ -1,5 +1,6 @@
 tts_sounds/
 bans/
+current_seed.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

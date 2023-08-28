@@ -1,6 +1,7 @@
 tts_sounds/
 bans/
 current_seed.txt
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

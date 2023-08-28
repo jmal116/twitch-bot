@@ -7,7 +7,7 @@ import sys
 import time
 import uuid
 import webbrowser
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from datetime import datetime, timedelta
 from multiprocessing import Process, Value
 
@@ -24,6 +24,7 @@ BIG_QUACK_ID = '5e12b9ef-b5ae-448f-ac11-3caa5607531b'
 GOT_EM_ID = "76f82a23-63a6-4799-906c-0d1cd6c1df3e"
 WHOMSTDVE_ID = "9b42cebf-0958-416b-b712-5749326231eb"
 GROUND_REWARD_ID = "3bf0310b-4182-4673-9977-c1531650cc49"
+VINE_BOOM_REWARD_ID = "5e9adf48-6df6-4e02-8e39-fe9e7535e7c4"
 
 MINECRAFT_GAME_ID = '27471'
 
@@ -176,7 +177,7 @@ class Bot:
                 self.pubsub_connection.close()
                 await self.connect_pubsub()
             if message['type'] == 'MESSAGE':
-                # print(message)
+                print(message)
                 await self.process_redemption(json.loads(message['data']['message']))
         except asyncio.exceptions.TimeoutError:
             return
@@ -323,6 +324,8 @@ class Bot:
             await self.ban_user(username)
         elif reward_id == GROUND_REWARD_ID:
             self.throw_on_ground()
+        elif reward_id == VINE_BOOM_REWARD_ID:
+            Process(target=random_vine_boom, args=(random.randint(60, 5*60),)).start()
         
     def tts_sound_check(self):
         files = os.listdir('tts_sounds')
@@ -348,7 +351,7 @@ class Bot:
     async def check_reminder(self):
         if self.do_reminder and self.next_reminder < datetime.now():
             await self.send_chat_message(f"This game is a weekly Ori rando community race. You can view the restream for the race with commentary at {self.restream_link} . I'm not reading chat, have my mic turned off, and have disabled all channel rewards and chatbot features.")
-            self.next_reminder = datetime.now() + timedelta(minutes=1)
+            self.next_reminder = datetime.now() + timedelta(minutes=5)
 
 
     async def loop(self):
@@ -366,6 +369,10 @@ def throw_on_ground_helper(throw):
     if throw:
         time.sleep(1.2)
         keyboard.send('t')
+
+def random_vine_boom(delay):
+    time.sleep(delay)
+    play_sound_effect('vine_boom')
 
 def play_sound_effect(filename):
     sound_file = f'sound_effects\\{filename}.wav'

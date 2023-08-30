@@ -177,7 +177,7 @@ class Bot:
                 self.pubsub_connection.close()
                 await self.connect_pubsub()
             if message['type'] == 'MESSAGE':
-                print(message)
+                # print(message)
                 await self.process_redemption(json.loads(message['data']['message']))
         except asyncio.exceptions.TimeoutError:
             return

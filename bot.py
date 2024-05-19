@@ -68,13 +68,11 @@ class Bot:
 
         #verify channel id
         self.channel_id = requests.get('https://api.twitch.tv/helix/users',
-        headers={
-            'Client-Id': self.client_id,
-            'Authorization': f'Bearer {self.app_access_token}'
-        },
-        params={
-            'login': 'jmal116'
-        }).json()['data'][0]['id']
+            headers=self._format_api_headers(),
+            params={
+                'login': 'jmal116'
+            }
+        ).json()['data'][0]['id']
         print('Successfully fetched channel id')
 
         # print('Paste code for the chatbot account:\n')
@@ -83,8 +81,15 @@ class Bot:
         self.user_token, self.refresh_token = self.get_user_tokens()
         self.chatbot_token = self.user_token
 
+    def _format_api_headers(self, use_auth=False):
+        default = {
+            'Client-Id': self.client_id,
+            'Authorization': f'Bearer {self.user_token if use_auth else self.app_access_token}'
+        }
+        return default
+
     def get_user_tokens(self):
-        webbrowser.open(r'https://id.twitch.tv/oauth2/authorize?client_id=lil5xkerbfl7lsj2pk1qhvgsi8fro4&response_type=code&redirect_uri=http%3A%2F%2Flocalhost&force_verify=false&scope=channel:read:redemptions%20channel:moderate%20chat:edit%20chat:read')
+        webbrowser.open(r'https://id.twitch.tv/oauth2/authorize?client_id=lil5xkerbfl7lsj2pk1qhvgsi8fro4&response_type=code&redirect_uri=http%3A%2F%2Flocalhost&force_verify=false&scope=channel:read:redemptions%20channel:moderate%20chat:edit%20chat:read%20moderator:manage:banned_users')
         temp_code = input()
         resp = requests.post('https://id.twitch.tv/oauth2/token',
         params={
@@ -273,6 +278,8 @@ class Bot:
                 'youtube': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
                 'twitter': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
                 'socials': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
+                'worstseed': r'https://orirando.com/?param_id=6245862963412992', # Required logical progression: stomp + bash + glide + wind into valley -> climb in left sorrow -> gs shards by stomp tree and far left grotto -> wv shard on forlorn escape + wv shard on ms 6 (with exactly 6 available mapstones) -> cflame in ginso escape -> 4 ss shards in plants (including 1 in ginso and 1 in forlorn) -> grenade in horu -> relic in grandpa's house. Truly incredible
+                'badseeds': r'https://orirando.com/?param_id=6245862963412992 https://orirando.com/?param_id=5157695887769600 https://orirando.com/?param_id=5082275993616384 https://orirando.com/?param_id=5095303099187200'
             }
             to_send = responses.get(cmd, None)
             if to_send is not None:
@@ -293,19 +300,18 @@ class Bot:
 
     def throw_on_ground(self):
         game_id =  requests.get('https://api.twitch.tv/helix/channels',
-            headers={
-                'Client-Id': self.client_id,
-                'Authorization': f'Bearer {self.app_access_token}'
-            },
+            headers=self._format_api_headers(),
             params={
                 'broadcaster_id': self.channel_id
-            }).json()['data'][0]['game_id']
+            }
+        ).json()['data'][0]['game_id']
         Process(target=throw_on_ground_helper, args=(game_id == MINECRAFT_GAME_ID,)).start()
 
     async def process_redemption(self, response):
         if self.do_reminder:
             return
         reward_id = response['data']['redemption']['reward']['id']
+        user_id = response['data']['redemption']['user']['id']
         username = response['data']['redemption']['user']['display_name']
         if reward_id == TTS_REWARD_ID:
             text = response['data']['redemption']['user_input']
@@ -321,7 +327,8 @@ class Bot:
         elif reward_id == WHOMSTDVE_ID:
             play_sound_effect('whomstdve')
         elif reward_id == BAN_REWARD_ID:
-            await self.ban_user(username)
+            await self.ban_user(username, user_id)
+            play_sound_effect('coffin_dance')
         elif reward_id == GROUND_REWARD_ID:
             self.throw_on_ground()
         elif reward_id == VINE_BOOM_REWARD_ID:
@@ -334,23 +341,52 @@ class Bot:
             self.tts_process = Process(target=play_next_tts, args=(self.num_tts_read, self.is_speaking))
             self.tts_process.start()
             
-    async def ban_user(self, username):
+    async def ban_user(self, username, user_id):
         await self.send_chat_message(f'@{username} has chosen death. Good riddance.')
-        await self.send_command(f'/ban {username}')
+        reasons = [
+            'You chose death ¯\_(ツ)_/¯',
+            'Girlbossed too close to the sun',
+            'Was it really worth it?',
+            'Played stupid games, won stupid prizes',
+            'Our AI overlords have spoken',
+            'Failed the FitnessGram™ Pacer Test',
+            'Because I am powerful and do such things',
+        ]
+        resp = requests.post(r'https://api.twitch.tv/helix/moderation/bans',          
+            headers=self._format_api_headers(use_auth=True),
+            params={
+                'broadcaster_id': self.channel_id,
+                'moderator_id': self.channel_id
+            },
+            json= {
+                'data': {
+                    'user_id': user_id,
+                    'reason': random.choice(reasons)
+                }
+            }
+        )
         with open(BAN_FILE, 'a') as file:
-            file.write(f'{username}\n')
+            file.write(f'{user_id}\n')
 
     async def unban_users(self):
         with open(BAN_FILE) as file:
-            for username in file:
-                await self.send_command(f'/unban {username}')
+            for user_id in file:
+                user_id = user_id.strip()
+                resp = requests.delete(r'https://api.twitch.tv/helix/moderation/bans',
+                    headers=self._format_api_headers(use_auth=True),
+                    params={
+                        'broadcaster_id': self.channel_id,
+                        'moderator_id': self.channel_id,
+                        'user_id': user_id
+                    }
+                )
         os.remove(BAN_FILE)
         with open(BAN_FILE, 'w') as _:
             pass
 
     async def check_reminder(self):
         if self.do_reminder and self.next_reminder < datetime.now():
-            await self.send_chat_message(f"This game is a weekly Ori rando community race. You can view the restream for the race with commentary at {self.restream_link} . I'm not reading chat, have my mic turned off, and have disabled all channel rewards and chatbot features.")
+            await self.send_chat_message(rf"This game is part of the doubles tournament. I'm not reading chat, have my mic turned off, and have disabled all channel rewards and chatbot features. Watch the race with commentary: {self.restream_link}")
             self.next_reminder = datetime.now() + timedelta(minutes=5)
 
 

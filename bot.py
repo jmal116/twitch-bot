@@ -25,6 +25,7 @@ GOT_EM_ID = "76f82a23-63a6-4799-906c-0d1cd6c1df3e"
 WHOMSTDVE_ID = "9b42cebf-0958-416b-b712-5749326231eb"
 GROUND_REWARD_ID = "3bf0310b-4182-4673-9977-c1531650cc49"
 VINE_BOOM_REWARD_ID = "5e9adf48-6df6-4e02-8e39-fe9e7535e7c4"
+CHRISTMAS_ID = "4a10ec1c-8c3f-42cb-bd6f-20bda8b37d3e"
 
 MINECRAFT_GAME_ID = '27471'
 
@@ -333,6 +334,11 @@ class Bot:
             self.throw_on_ground()
         elif reward_id == VINE_BOOM_REWARD_ID:
             Process(target=random_vine_boom, args=(random.randint(60, 5*60),)).start()
+        elif reward_id == CHRISTMAS_ID:
+            if random.choice([1, 0]) == 1:
+                play_sound_effect('defy_gravity')
+            else:
+                play_sound_effect('mariah_carey')
         
     def tts_sound_check(self):
         files = os.listdir('tts_sounds')

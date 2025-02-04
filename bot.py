@@ -273,6 +273,8 @@ class Bot:
             await self.send_chat_message('⠀⠀⠀⠀⠀⠉⠉⠉')
         elif cmd == 'seed':
             await self.send_current_seed()
+        elif cmd == 'relic':
+            await self.send_relic_get_chat()
         else:
             responses = {
                 'furnace': r'https://www.twitch.tv/videos/452470158',
@@ -280,11 +282,33 @@ class Bot:
                 'twitter': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
                 'socials': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
                 'worstseed': r'https://orirando.com/?param_id=6245862963412992', # Required logical progression: stomp + bash + glide + wind into valley -> climb in left sorrow -> gs shards by stomp tree and far left grotto -> wv shard on forlorn escape + wv shard on ms 6 (with exactly 6 available mapstones) -> cflame in ginso escape -> 4 ss shards in plants (including 1 in ginso and 1 in forlorn) -> grenade in horu -> relic in grandpa's house. Truly incredible
-                'badseeds': r'https://orirando.com/?param_id=6245862963412992 https://orirando.com/?param_id=5157695887769600 https://orirando.com/?param_id=5082275993616384 https://orirando.com/?param_id=5095303099187200'
+                'badseeds': r'https://orirando.com/?param_id=6245862963412992 https://orirando.com/?param_id=5445971634814976 https://orirando.com/?param_id=5157695887769600 https://orirando.com/?param_id=5082275993616384 https://orirando.com/?param_id=5095303099187200'
             }
             to_send = responses.get(cmd, None)
             if to_send is not None:
                 await self.send_chat_message(to_send)
+
+    async def send_relic_get_chat(self):
+        emotes = [
+            'CoolCat'
+            ,'jmal11HideBash'
+            ,'jmal11DustyStick'
+            ,'jmal11GG'
+            ,'PizzaTime'
+            ,'Lechonk'
+            ,'MrDestructoid'
+            ,'BOP'
+            ,'TwitchSings'
+            ,'PixelBob'
+            ,'PopCorn'
+            ,'TheIlluminati'
+            ,'DoritosChip'
+            ,'OhMyDog'
+            ,'SSSsss'
+        ]
+        chosen = random.choice(emotes)
+        composed = f' {chosen} '.join('RELICGET')
+        await self.send_chat_message(f'{chosen} {composed} {chosen}')
 
     async def send_current_seed(self):
         with open('./current_seed.txt') as file:

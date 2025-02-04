@@ -57,6 +57,24 @@ class Bot:
             self.do_reminder = False
             self.restream_link = None
 
+        self.relic_emotes = [
+            'CoolCat'
+            ,'jmal11HideBash'
+            ,'jmal11DustyStick'
+            ,'jmal11GG'
+            ,'PizzaTime'
+            ,'Lechonk'
+            ,'MrDestructoid'
+            ,'BOP'
+            ,'TwitchSings'
+            ,'PixelBob'
+            ,'PopCorn'
+            ,'TheIlluminati'
+            ,'DoritosChip'
+            ,'OhMyDog'
+            ,'SSSsss'
+        ]
+
 
         #Get an app access token
         self.app_access_token = requests.post('https://id.twitch.tv/oauth2/token',
@@ -289,24 +307,7 @@ class Bot:
                 await self.send_chat_message(to_send)
 
     async def send_relic_get_chat(self):
-        emotes = [
-            'CoolCat'
-            ,'jmal11HideBash'
-            ,'jmal11DustyStick'
-            ,'jmal11GG'
-            ,'PizzaTime'
-            ,'Lechonk'
-            ,'MrDestructoid'
-            ,'BOP'
-            ,'TwitchSings'
-            ,'PixelBob'
-            ,'PopCorn'
-            ,'TheIlluminati'
-            ,'DoritosChip'
-            ,'OhMyDog'
-            ,'SSSsss'
-        ]
-        chosen = random.choice(emotes)
+        chosen = random.choice(self.relic_emotes)
         composed = f' {chosen} '.join('RELICGET')
         await self.send_chat_message(f'{chosen} {composed} {chosen}')
 
@@ -322,6 +323,21 @@ class Bot:
             await self.send_chat_message('So soggy!')
         if "bad water" in message.message.lower():
             await self.send_chat_message('Sad water!')
+        if self.is_relic_chat(message):
+            await self.send_relic_get_chat()
+
+    def is_relic_chat(self, message: ChatMessage):
+        chosen = None
+        for emote in self.relic_emotes:
+            if emote in message.message:
+                chosen = emote
+                break
+        if chosen is None:
+            return False
+        
+        reduced: str = message.message.replace(chosen, '')
+        reduced = reduced.replace(' ', '')
+        return reduced.upper() == 'RELICGET'
 
     def throw_on_ground(self):
         game_id =  requests.get('https://api.twitch.tv/helix/channels',

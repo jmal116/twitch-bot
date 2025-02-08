@@ -5,7 +5,6 @@ import random
 import re
 import sys
 import time
-import uuid
 import webbrowser
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -39,6 +38,7 @@ class Bot:
         self.client_id = 'lil5xkerbfl7lsj2pk1qhvgsi8fro4'
         self.client_secret = 'm33z33z1d60n67n2kev7iw54foo6db'
         self.pubsub_connection = None
+        self.eventsub_id = None
         self.chat_connection = None
         self.conor_chat = None
         self.next_ping = datetime.now()
@@ -103,7 +103,8 @@ class Bot:
     def _format_api_headers(self, use_auth=False):
         default = {
             'Client-Id': self.client_id,
-            'Authorization': f'Bearer {self.user_token if use_auth else self.app_access_token}'
+            'Authorization': f'Bearer {self.user_token if use_auth else self.app_access_token}',
+            'Content-Type': 'application/json'
         }
         return default
 
@@ -125,13 +126,23 @@ class Bot:
            Connecting to webSocket server
            websockets.client.connect returns a WebSocketClientProtocol, which is used to send and receive messages
         '''
-        topics = [f"channel-points-channel-v1.{self.channel_id}"]
-        self.pubsub_connection = await websockets.client.connect('wss://pubsub-edge.twitch.tv')
-        if self.pubsub_connection.open:
-            print('Pubsub connection established. Client correcly connected')
-            # Send greeting
-            message = {"type": "LISTEN", "nonce": str(self.generate_nonce()), "data":{"topics": topics, "auth_token": self.user_token}}
-            await self.send_pubsub(message)
+        self.pubsub_connection = await websockets.client.connect('wss://eventsub.wss.twitch.tv/ws?keepalive_timeout_seconds=600')
+        message = json.loads(await self.pubsub_connection.recv())
+        self.eventsub_id = message['payload']['session']['id']
+        event_response = requests.post('https://api.twitch.tv/helix/eventsub/subscriptions',
+            headers=self._format_api_headers(use_auth=True),
+            data=json.dumps({
+                'type': 'channel.channel_points_custom_reward_redemption.add',
+                'version': 1,
+                'condition': {'broadcaster_user_id': self.channel_id},
+                'transport': {
+                    'method': 'websocket',
+                    'session_id': self.eventsub_id
+                }
+            })
+        ).json()
+        # print(event_response)
+        print('event sub connection established')
 
     async def connect_chatbot(self):
         self.chat_connection = await websockets.client.connect('wss://irc-ws.chat.twitch.tv:443')
@@ -163,23 +174,6 @@ class Bot:
             await self.recieve_irc(self.conor_chat)
             await self.send_irc('JOIN #wespr_', self.conor_chat)
 
-    def generate_nonce(self):
-        '''Generate pseudo-random number and seconds since epoch (UTC).'''
-        nonce = uuid.uuid1()
-        oauth_nonce = nonce.hex
-        return oauth_nonce
-
-    async def refresh_pubsub(self):
-        resp = requests.post('https://id.twitch.tv/oauth2/token--data-urlencode',
-        params={
-            'grant_type': 'refresh_token',
-            'refresh_token': self.refresh_token,
-            'client_id': self.client_id,
-            'client_secret': self.client_secret
-        }).json()
-        self.refresh_token = resp['refresh_token']
-        self.user_token = resp['access_token']
-
     async def send_pubsub(self, message):
         '''Sending message to webSocket server'''
         json_message = json.dumps(message)
@@ -196,28 +190,23 @@ class Bot:
         try:
             message = json.loads(await asyncio.wait_for(self.pubsub_connection.recv(), 1/60))
             # print(f'Received message from pubsub: {message}')
-            if message['type'] == 'RECONNECT':
+            message_type = message['metadata']['message_type']
+            if message_type == 'session_reconnect':
                 print('pubsub reconnect message recieved, doing it')
-                self.pubsub_connection.close()
-                await self.connect_pubsub()
-            if message['type'] == 'MESSAGE':
+                old_conn = self.pubsub_connection
+                new_url = message['payload']['session']['reconnect_url']
+                self.pubsub_connection = await websockets.client.connect(new_url)
+                message = json.loads(await self.pubsub_connection.recv())
+                self.eventsub_id = message['payload']['session']['id']
+                old_conn.close()
+            if message_type == 'notification':
                 # print(message)
-                await self.process_redemption(json.loads(message['data']['message']))
+                await self.process_redemption(message)
         except asyncio.exceptions.TimeoutError:
             return
         except websockets.exceptions.ConnectionClosed:
             print('Connection with pubsub server closed, retrying')
             await self.connect_pubsub()
-
-    async def heartbeat_pubsub(self):
-        '''
-        Sending heartbeat to server every 3 minutes
-        Ping - pong messages to verify/keep connection is alive
-        '''
-        if self.next_ping < datetime.now():
-            data_set = {"type": "PING"}
-            await self.send_pubsub(data_set)
-            self.next_ping = datetime.now() + timedelta(seconds=180 + random.randint(1, 5))
 
     async def send_irc(self, message, connection):
         # print(f'< {message}')
@@ -351,11 +340,12 @@ class Bot:
     async def process_redemption(self, response):
         if self.do_reminder:
             return
-        reward_id = response['data']['redemption']['reward']['id']
-        user_id = response['data']['redemption']['user']['id']
-        username = response['data']['redemption']['user']['display_name']
+        event = response['payload']['event']
+        reward_id = event['reward']['id']
+        user_id = event['user_id']
+        username = event['user_name']
         if reward_id == TTS_REWARD_ID:
-            text = response['data']['redemption']['user_input']
+            text = event['user_input']
             self.tts.save_to_file(f'{username} has redeemed Text to Speech, saying {text}', f'tts_sounds\\tts-{self.num_tts_redemptions}.wav')
             self.tts.runAndWait()
             self.num_tts_redemptions += 1
@@ -438,7 +428,6 @@ class Bot:
 
     async def loop(self):
         while True:
-            await self.heartbeat_pubsub()
             await self.receive_pubsub()
             await self.recieve_irc(self.command_connection)
             await self.recieve_irc(self.conor_chat)

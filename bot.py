@@ -244,6 +244,7 @@ class Bot:
             await self.connect_command()
 
     async def send_chat_message(self, message):
+        self.log_chat_message(ChatMessage('####JMAL116_CHATBOT####', message, False))
         await self.send_irc(f'PRIVMSG #jmal116 :{message}', self.chat_connection)
 
     async def send_conor_message(self, message):
@@ -319,7 +320,7 @@ class Bot:
     
     def log_chat_message(self, message: ChatMessage):
         with open(CHATLOG_FILE, 'a') as file:
-            file.write(f'{message.user}: {message.message}\n')
+            file.write(f'{datetime.now().strftime("%H:%M:%S")} {message.user}: {message.message}\n')
 
     def is_relic_chat(self, message: ChatMessage):
         chosen = None

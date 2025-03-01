@@ -29,13 +29,12 @@ CHRISTMAS_ID = "4a10ec1c-8c3f-42cb-bd6f-20bda8b37d3e"
 MINECRAFT_GAME_ID = '27471'
 
 BAN_FILE = 'bans\\bans.txt'
-CHATLOG_FILE = 'chatlog.txt'
 
 ChatMessage = namedtuple('ChatMessage', ['user', 'message', 'command'])
 
 class Bot:
 
-    def __init__(self, restream_link=None):
+    def __init__(self, chatlog_file, restream_link=None):
         self.client_id = 'lil5xkerbfl7lsj2pk1qhvgsi8fro4'
         self.client_secret = 'm33z33z1d60n67n2kev7iw54foo6db'
         self.pubsub_connection = None
@@ -51,6 +50,7 @@ class Bot:
         self.is_speaking = Value('b', False)
         self.tts_process = None
         self.next_reminder = datetime.now()
+        self.chatlog_file = chatlog_file
         if restream_link is not None:
             self.do_reminder = True
             self.restream_link = restream_link
@@ -319,7 +319,7 @@ class Bot:
             await self.send_relic_get_chat()
     
     def log_chat_message(self, message: ChatMessage):
-        with open(CHATLOG_FILE, 'a') as file:
+        with open(self.chatlog_file, 'a') as file:
             file.write(f'{datetime.now().strftime("%H:%M:%S")} {message.user}: {message.message}\n')
 
     def is_relic_chat(self, message: ChatMessage):
@@ -427,12 +427,6 @@ class Bot:
         with open(BAN_FILE, 'w') as _:
             pass
 
-    def clear_chatlog(self):
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        os.remove(CHATLOG_FILE)
-        with open(CHATLOG_FILE, 'w') as file:
-            file.write(f'Chatlog cleared on {now}\n')
-
     async def check_reminder(self):
         if self.do_reminder and self.next_reminder < datetime.now():
             await self.send_chat_message(rf"This game is part of the doubles tournament. I'm not reading chat, have my mic turned off, and have disabled all channel rewards and chatbot features. Watch the race with commentary: {self.restream_link}")
@@ -509,7 +503,12 @@ async def main():
         link = None
     else:
         link = sys.argv[1]
-    client = Bot(link)
+    now = datetime.now().strftime('%Y%m%d%H%M%S')
+    chatlog_file = f'chatlogs\\{now}.txt'
+    if not os.path.isfile(chatlog_file):
+        with open(chatlog_file, 'w') as _:
+            pass
+    client = Bot(chatlog_file=chatlog_file, restream_link=link)
     keyboard.add_hotkey('ctrl+alt+1', lambda: keyboard_break(client))
     keyboard.add_hotkey('ctrl+alt+backspace', lambda: fuck_with_conor(client))
     await client.connect_pubsub()
@@ -517,7 +516,6 @@ async def main():
     await client.connect_command()
     await client.connect_conor()
     await client.unban_users()
-    client.clear_chatlog()
     await client.loop()
 
 if __name__ == "__main__":
@@ -525,11 +523,10 @@ if __name__ == "__main__":
         os.mkdir('tts_sounds')
     if not os.path.isdir('bans'):
         os.mkdir('bans')
+    if not os.path.isdir('chatlogs'):
+        os.mkdir('chatlogs')
     if not os.path.isfile(BAN_FILE):
         with open(BAN_FILE, 'w') as _:
-            pass
-    if not os.path.isfile(CHATLOG_FILE):
-        with open(CHATLOG_FILE, 'w') as _:
             pass
     for name in os.listdir('tts_sounds'):
         os.remove(f'tts_sounds\\{name}')

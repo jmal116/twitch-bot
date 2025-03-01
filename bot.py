@@ -29,6 +29,7 @@ CHRISTMAS_ID = "4a10ec1c-8c3f-42cb-bd6f-20bda8b37d3e"
 MINECRAFT_GAME_ID = '27471'
 
 BAN_FILE = 'bans\\bans.txt'
+CHATLOG_FILE = 'chatlog.txt'
 
 ChatMessage = namedtuple('ChatMessage', ['user', 'message', 'command'])
 
@@ -229,6 +230,7 @@ class Bot:
                 if not parsed:
                     # this shouldn't ever happen, but it probably will at some point because I put ~2 minutes of thought into this solution
                     return
+                self.log_chat_message(parsed)
                 if parsed.command:
                     await self.process_chat_command(parsed)
                 else: 
@@ -314,6 +316,10 @@ class Bot:
             await self.send_chat_message('Sad water!')
         if self.is_relic_chat(message):
             await self.send_relic_get_chat()
+    
+    def log_chat_message(self, message: ChatMessage):
+        with open(CHATLOG_FILE, 'a') as file:
+            file.write(f'{message.user}: {message.message}\n')
 
     def is_relic_chat(self, message: ChatMessage):
         chosen = None
@@ -420,6 +426,12 @@ class Bot:
         with open(BAN_FILE, 'w') as _:
             pass
 
+    def clear_chatlog(self):
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        os.remove(CHATLOG_FILE)
+        with open(CHATLOG_FILE, 'w') as file:
+            file.write(f'Chatlog cleared on {now}\n')
+
     async def check_reminder(self):
         if self.do_reminder and self.next_reminder < datetime.now():
             await self.send_chat_message(rf"This game is part of the doubles tournament. I'm not reading chat, have my mic turned off, and have disabled all channel rewards and chatbot features. Watch the race with commentary: {self.restream_link}")
@@ -504,6 +516,7 @@ async def main():
     await client.connect_command()
     await client.connect_conor()
     await client.unban_users()
+    client.clear_chatlog()
     await client.loop()
 
 if __name__ == "__main__":
@@ -513,6 +526,9 @@ if __name__ == "__main__":
         os.mkdir('bans')
     if not os.path.isfile(BAN_FILE):
         with open(BAN_FILE, 'w') as _:
+            pass
+    if not os.path.isfile(CHATLOG_FILE):
+        with open(CHATLOG_FILE, 'w') as _:
             pass
     for name in os.listdir('tts_sounds'):
         os.remove(f'tts_sounds\\{name}')

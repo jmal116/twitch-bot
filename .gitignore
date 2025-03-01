@@ -3,6 +3,7 @@ bans/
 current_seed.txt
 .vscode/
 notes.txt
+chatlog.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

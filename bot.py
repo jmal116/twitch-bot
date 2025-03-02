@@ -51,6 +51,7 @@ class Bot:
         self.tts_process = None
         self.next_reminder = datetime.now()
         self.chatlog_file = chatlog_file
+        self.bot_chatlog_name = '####JMAL116_CHATBOT####'
         if restream_link is not None:
             self.do_reminder = True
             self.restream_link = restream_link
@@ -244,7 +245,7 @@ class Bot:
             await self.connect_command()
 
     async def send_chat_message(self, message):
-        self.log_chat_message(ChatMessage('####JMAL116_CHATBOT####', message, False))
+        self.log_chat_message(ChatMessage(self.bot_chatlog_name, message, False))
         await self.send_irc(f'PRIVMSG #jmal116 :{message}', self.chat_connection)
 
     async def send_conor_message(self, message):
@@ -309,6 +310,10 @@ class Bot:
         await self.send_chat_message(url)
 
     async def process_plain_chat(self, message: ChatMessage):
+        if self.should_auto_ban(message):
+            self.log_chat_message(ChatMessage(self.bot_chatlog_name, f'AUTO BANNING {message.user}', False))
+            await self.ban_user(message.user, should_unban=False)
+            return
         if self.do_reminder:
             return
         if "so brave" in message.message.lower():
@@ -317,6 +322,13 @@ class Bot:
             await self.send_chat_message('Sad water!')
         if self.is_relic_chat(message):
             await self.send_relic_get_chat()
+
+    def should_auto_ban(self, message: ChatMessage):
+        try:
+            is_unicode = not all(ord(c) < 128 for c in message.message)
+            return '.com' in message.message and is_unicode
+        except Exception as e:
+            self.log_error_message(f'{e.__class__} deciding to ban a user, you should look at that')
     
     def log_chat_message(self, message: ChatMessage):
         try:
@@ -325,6 +337,10 @@ class Bot:
         except:
             with open(self.chatlog_file, 'a', encoding='utf-8') as file:
                 file.write(f'{datetime.now().strftime("%H:%M:%S")} ERROR LOGGING MESSAGE\n')
+
+    def log_error_message(self, message: str):
+        with open(self.chatlog_file, 'a', encoding='utf-8') as file:
+            file.write(f'{datetime.now().strftime("%H:%M:%S")} ERROR!!!! {message}\n')
 
     def is_relic_chat(self, message: ChatMessage):
         chosen = None
@@ -388,17 +404,26 @@ class Bot:
             self.tts_process = Process(target=play_next_tts, args=(self.num_tts_read, self.is_speaking))
             self.tts_process.start()
             
-    async def ban_user(self, username, user_id):
-        await self.send_chat_message(f'@{username} has chosen death. Good riddance.')
+    async def ban_user(self, username, user_id=None, should_unban=True):
         reasons = [
-            'You chose death ¯\_(ツ)_/¯',
-            'Girlbossed too close to the sun',
-            'Was it really worth it?',
-            'Played stupid games, won stupid prizes',
-            'Our AI overlords have spoken',
-            'Failed the FitnessGram™ Pacer Test',
-            'Because I am powerful and do such things',
+            '@{username} has chosen death. Good riddance. ¯\_(ツ)_/¯',
+            '@{username} girlbossed too close to the sun',
+            'Was it really worth it, @{username}?',
+            '@{username} played stupid games and won stupid prizes',
+            '@{username} failed the FitnessGram™ Pacer Test',
         ]
+        reason = random.choice(reasons).format(username=username)
+        if should_unban: await self.send_chat_message(reason)
+
+        if user_id is None:
+            user_id = requests.get('https://api.twitch.tv/helix/users',
+                headers=self._format_api_headers(),
+                params={
+                    'login': username
+                }
+            ).json()['data'][0]['id']
+        # print(f'username: {username}, user_id: {user_id}')
+
         resp = requests.post(r'https://api.twitch.tv/helix/moderation/bans',          
             headers=self._format_api_headers(use_auth=True),
             params={
@@ -408,12 +433,14 @@ class Bot:
             json= {
                 'data': {
                     'user_id': user_id,
-                    'reason': random.choice(reasons)
+                    'reason': reason
                 }
             }
         )
-        with open(BAN_FILE, 'a') as file:
-            file.write(f'{user_id}\n')
+        # print(resp.json())
+        if should_unban:
+            with open(BAN_FILE, 'a') as file:
+                file.write(f'{user_id}\n')
 
     async def unban_users(self):
         with open(BAN_FILE) as file:

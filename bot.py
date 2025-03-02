@@ -319,8 +319,12 @@ class Bot:
             await self.send_relic_get_chat()
     
     def log_chat_message(self, message: ChatMessage):
-        with open(self.chatlog_file, 'a') as file:
-            file.write(f'{datetime.now().strftime("%H:%M:%S")} {message.user}: {message.message}\n')
+        try:
+            with open(self.chatlog_file, 'a', encoding='utf-8') as file:
+                file.write(f'{datetime.now().strftime("%H:%M:%S")} {message.user}: {message.message}\n')
+        except:
+            with open(self.chatlog_file, 'a', encoding='utf-8') as file:
+                file.write(f'{datetime.now().strftime("%H:%M:%S")} ERROR LOGGING MESSAGE\n')
 
     def is_relic_chat(self, message: ChatMessage):
         chosen = None

@@ -27,7 +27,8 @@ WHOMSTDVE_ID = "9b42cebf-0958-416b-b712-5749326231eb"
 GROUND_REWARD_ID = "3bf0310b-4182-4673-9977-c1531650cc49"
 VINE_BOOM_REWARD_ID = "5e9adf48-6df6-4e02-8e39-fe9e7535e7c4"
 CHRISTMAS_ID = "4a10ec1c-8c3f-42cb-bd6f-20bda8b37d3e"
-ADD_XP_ID = 'c8432ff9-3675-425d-85e5-1a867a39c861'
+ADD_EXP_ID = 'c8432ff9-3675-425d-85e5-1a867a39c861'
+REMOVE_EXP_ID = '986d744d-5a72-407f-8952-4aa809718a1e'
 
 MINECRAFT_GAME_ID = '27471'
 
@@ -116,7 +117,7 @@ class Bot:
         return default
 
     def get_user_tokens(self):
-        webbrowser.open(r'https://id.twitch.tv/oauth2/authorize?client_id=lil5xkerbfl7lsj2pk1qhvgsi8fro4&response_type=code&redirect_uri=http%3A%2F%2Flocalhost&force_verify=false&scope=channel:read:redemptions%20channel:moderate%20chat:edit%20chat:read%20moderator:manage:banned_users')
+        webbrowser.open(r'https://id.twitch.tv/oauth2/authorize?client_id=lil5xkerbfl7lsj2pk1qhvgsi8fro4&response_type=code&redirect_uri=http%3A%2F%2Flocalhost&force_verify=false&scope=channel:read:redemptions%20channel:moderate%20chat:edit%20chat:read%20moderator:manage:banned_users%20channel:manage:redemptions')
         temp_code = input()
         resp = requests.post('https://id.twitch.tv/oauth2/token',
         params={
@@ -207,7 +208,7 @@ class Bot:
                 self.eventsub_id = message['payload']['session']['id']
                 old_conn.close()
             if message_type == 'notification':
-                print(message)
+                # print(message)
                 await self.process_redemption(message)
         except asyncio.exceptions.TimeoutError:
             return
@@ -372,8 +373,37 @@ class Bot:
     def add_exp_name(self, name):
         with open(STARTING_EXP_FILE_NAME, 'a') as file:
             file.write(f'{name}\n') 
-        with open(EXP_FILE_NAME, 'a') as file:
-            file.write(f'{name}\n') 
+        shutil.copyfile(STARTING_EXP_FILE_NAME, EXP_FILE_NAME)
+
+    async def remove_exp_name(self, name: str, redemption_id, username):
+        name_comp = name.upper().strip()
+        with open(STARTING_EXP_FILE_NAME, 'r') as file:
+            lines = file.readlines()
+        lines_comp = [line.upper().strip() for line in lines]
+        if name_comp in lines_comp:
+            with open(STARTING_EXP_FILE_NAME, 'w') as file:
+                for line, line_comp in zip(lines, lines_comp):
+                    if name_comp != line_comp:
+                        file.write(line)
+            shutil.copyfile(STARTING_EXP_FILE_NAME, EXP_FILE_NAME)
+            is_complete = True
+        else:
+            is_complete = False
+
+        resp = requests.patch(r'https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions',          
+            headers=self._format_api_headers(use_auth=True),
+            params={
+                'broadcaster_id': self.channel_id,
+                'id': redemption_id,
+                'reward_id': REMOVE_EXP_ID
+            },
+            json= {
+                'status': 'FULFILLED' if is_complete else 'CANCELED'
+            }
+        )
+        # print(resp.json())
+        if not is_complete:
+            await self.send_chat_message(f'@{username} that experience name isn\'t in the list!')
 
     async def process_redemption(self, response):
         if self.do_reminder:
@@ -407,8 +437,10 @@ class Bot:
                 play_sound_effect('defy_gravity')
             else:
                 play_sound_effect('mariah_carey')
-        elif reward_id == ADD_XP_ID:
+        elif reward_id == ADD_EXP_ID:
             self.add_exp_name(event['user_input'])
+        elif reward_id == REMOVE_EXP_ID:
+            await self.remove_exp_name(event['user_input'], event['id'], username)
         
     def tts_sound_check(self):
         files = os.listdir('tts_sounds')

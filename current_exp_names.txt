@@ -4,8 +4,6 @@ Bananas
 Bells
 Bits
 Bolts
-Boonbucks
-Boxings
 Brick
 Brownie Points
 Bytes
@@ -18,52 +16,33 @@ Diamonds
 Dollars
 Dollerydoos
 Doubloons
-Drams
-EXP
-Echoes
 Emeralds
 Euros
 Exalted Orbs
-Experience
-Farthings
 Fish
 Fun
-GP
-Gallons
 Geo
 Glod
 Gold
 Hugs
-Kalganids
 Leaves
 Likes
 Marbles
 Minerals
 Money
 Munny
-Nobles
-Notes
 Nuts
 Ori Money
-Pesos
-Points
 Poké
-Pons
-Pounds Sterling
-Quills
 Rings
 Rubies
 Runes
-Rupees
 Sapphires
 Sheep
 Shillings
 Silver
 Slivers
 Socks
-Solari
-Souls
-Sovereigns
 Spheres
 Spirit Bucks
 Spirit Light
@@ -75,7 +54,9 @@ Tickets
 Tokens
 Wheat
 Widgets
-Wood
-XP
 Yen
 Smackers
+According to all known laws of aviation, there is no way a bee should be able to fly. Its wings are too small to get its fat little body off the ground. The bee, of course, flies anyway because bees don't care what humans think is impossible.
+Logging Errors
+Bilbos
+pause floats

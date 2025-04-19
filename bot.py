@@ -332,7 +332,7 @@ class Bot:
     def should_auto_ban(self, message: ChatMessage):
         try:
             is_unicode = not all(ord(c) < 128 for c in message.message)
-            return '.com' in message.message and is_unicode
+            return ('.com' in message.message or '.ru' in message.message) and is_unicode
         except Exception as e:
             self.log_error_message(f'{e.__class__} deciding to ban a user, you should look at that')
     

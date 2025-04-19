@@ -9,6 +9,8 @@ import webbrowser
 from collections import namedtuple
 from datetime import datetime, timedelta
 from multiprocessing import Process, Value
+from pathlib import Path
+import shutil
 
 import keyboard
 import playsound
@@ -25,10 +27,13 @@ WHOMSTDVE_ID = "9b42cebf-0958-416b-b712-5749326231eb"
 GROUND_REWARD_ID = "3bf0310b-4182-4673-9977-c1531650cc49"
 VINE_BOOM_REWARD_ID = "5e9adf48-6df6-4e02-8e39-fe9e7535e7c4"
 CHRISTMAS_ID = "4a10ec1c-8c3f-42cb-bd6f-20bda8b37d3e"
+ADD_XP_ID = 'c8432ff9-3675-425d-85e5-1a867a39c861'
 
 MINECRAFT_GAME_ID = '27471'
 
 BAN_FILE = 'bans\\bans.txt'
+EXP_FILE_NAME = Path("E:\SteamLibrary\steamapps\common\Ori DE\ExpNames.txt")
+STARTING_EXP_FILE_NAME = Path('current_exp_names.txt')
 
 ChatMessage = namedtuple('ChatMessage', ['user', 'message', 'command'])
 
@@ -202,7 +207,7 @@ class Bot:
                 self.eventsub_id = message['payload']['session']['id']
                 old_conn.close()
             if message_type == 'notification':
-                # print(message)
+                print(message)
                 await self.process_redemption(message)
         except asyncio.exceptions.TimeoutError:
             return
@@ -293,7 +298,7 @@ class Bot:
                 'twitter': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
                 'socials': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
                 'worstseed': r'https://orirando.com/?param_id=6245862963412992', # Required logical progression: stomp + bash + glide + wind into valley -> climb in left sorrow -> gs shards by stomp tree and far left grotto -> wv shard on forlorn escape + wv shard on ms 6 (with exactly 6 available mapstones) -> cflame in ginso escape -> 4 ss shards in plants (including 1 in ginso and 1 in forlorn) -> grenade in horu -> relic in grandpa's house. Truly incredible
-                'badseeds': r'https://orirando.com/?param_id=6245862963412992 https://orirando.com/?param_id=5445971634814976 https://orirando.com/?param_id=5157695887769600 https://orirando.com/?param_id=5082275993616384 https://orirando.com/?param_id=5095303099187200'
+                'badseeds': r'https://orirando.com/?param_id=6245862963412992 https://orirando.com/?param_id=6260102851985408 https://orirando.com/?param_id=5120055155097600 https://orirando.com/?param_id=5445971634814976 https://orirando.com/?param_id=5157695887769600 https://orirando.com/?param_id=5082275993616384 https://orirando.com/?param_id=5095303099187200'
             }
             to_send = responses.get(cmd, None)
             if to_send is not None:
@@ -364,6 +369,12 @@ class Bot:
         ).json()['data'][0]['game_id']
         Process(target=throw_on_ground_helper, args=(game_id == MINECRAFT_GAME_ID,)).start()
 
+    def add_exp_name(self, name):
+        with open(STARTING_EXP_FILE_NAME, 'a') as file:
+            file.write(f'{name}\n') 
+        with open(EXP_FILE_NAME, 'a') as file:
+            file.write(f'{name}\n') 
+
     async def process_redemption(self, response):
         if self.do_reminder:
             return
@@ -396,6 +407,8 @@ class Bot:
                 play_sound_effect('defy_gravity')
             else:
                 play_sound_effect('mariah_carey')
+        elif reward_id == ADD_XP_ID:
+            self.add_exp_name(event['user_input'])
         
     def tts_sound_check(self):
         files = os.listdir('tts_sounds')
@@ -539,6 +552,11 @@ async def main():
     if not os.path.isfile(chatlog_file):
         with open(chatlog_file, 'w') as _:
             pass
+
+    if not EXP_FILE_NAME.exists():
+        raise Exception('ExpNames file not found, make sure directory didn\'t change through some unknown black magic')
+    shutil.copyfile(STARTING_EXP_FILE_NAME, EXP_FILE_NAME)
+
     client = Bot(chatlog_file=chatlog_file, restream_link=link)
     keyboard.add_hotkey('ctrl+alt+1', lambda: keyboard_break(client))
     keyboard.add_hotkey('ctrl+alt+backspace', lambda: fuck_with_conor(client))

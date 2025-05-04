@@ -63,3 +63,17 @@ pause floats
 Map Stones
 '); DROP TABLE expNames; --
 Glorpies
+corndabs
+in-logic pickups
+randomized currency names
+strings of text
+missing paths
+fun ideas
+seconds of lore
+Paths of Pain
+$Charge Jumps$
+*Shades of Blue*
+*Fake Water Veins*
+*Drops of Water*
+Strictly superior @Warmth Returned's@
+Experience Lost

@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from multiprocessing import Process, Value
 from pathlib import Path
 import shutil
+import glob
 
 import keyboard
 import playsound
@@ -32,9 +33,12 @@ REMOVE_EXP_ID = '986d744d-5a72-407f-8952-4aa809718a1e'
 
 MINECRAFT_GAME_ID = '27471'
 
-BAN_FILE = 'bans\\bans.txt'
 EXP_FILE_NAME = Path("E:\SteamLibrary\steamapps\common\Ori DE\ExpNames.txt")
 STARTING_EXP_FILE_NAME = Path('current_exp_names.txt')
+CHATLOG_FOLDER = Path('chatlogs')
+TTS_FOLDER = Path('tts_sounds')
+BANS_FOLDER = Path('bans')
+BAN_FILE = str(BANS_FOLDER / 'bans.txt')
 
 ChatMessage = namedtuple('ChatMessage', ['user', 'message', 'command'])
 
@@ -414,7 +418,7 @@ class Bot:
         username = event['user_name']
         if reward_id == TTS_REWARD_ID:
             text = event['user_input']
-            self.tts.save_to_file(f'{username} has redeemed Text to Speech, saying {text}', f'tts_sounds\\tts-{self.num_tts_redemptions}.wav')
+            self.tts.save_to_file(f'{username} has redeemed Text to Speech, saying {text}', f'{str(TTS_FOLDER)}\\tts-{self.num_tts_redemptions}.wav')
             self.tts.runAndWait()
             self.num_tts_redemptions += 1
         elif reward_id == QUACK_ID:
@@ -443,7 +447,7 @@ class Bot:
             await self.remove_exp_name(event['user_input'], event['id'], username)
         
     def tts_sound_check(self):
-        files = os.listdir('tts_sounds')
+        files = os.listdir(str(TTS_FOLDER))
         if files and not self.is_speaking.value:
             self.is_speaking.value = True
             self.tts_process = Process(target=play_next_tts, args=(self.num_tts_read, self.is_speaking))
@@ -533,7 +537,7 @@ def play_sound_effect(filename):
     Process(target=playsound.playsound, args=(sound_file,)).start()
 
 def play_next_tts(num_tts_read, is_speaking):
-    next_file = f'tts_sounds\\tts-{num_tts_read.value}.wav'
+    next_file = f'{str(TTS_FOLDER)}\\tts-{num_tts_read.value}.wav'
     while is_speaking.value:
         try:
             playsound.playsound(next_file)
@@ -579,16 +583,27 @@ async def main():
         link = None
     else:
         link = sys.argv[1]
-    now = datetime.now().strftime('%Y%m%d%H%M%S')
+
+    # chatlog maintenance
+    now_obj = datetime.now()
+    now = now_obj.strftime('%Y%m%d%H%M%S')
+    prefix_len = len(str(CHATLOG_FOLDER)) + 1
+    for file in glob.glob(str(CHATLOG_FOLDER / '*.txt')):
+        log_date = file[prefix_len : prefix_len + 14]
+        log_date = datetime.strptime(log_date, '%Y%m%d%H%M%S')
+        if (now_obj - log_date).days > 14:
+            os.remove(file)
     chatlog_file = f'chatlogs\\{now}.txt'
     if not os.path.isfile(chatlog_file):
         with open(chatlog_file, 'w') as _:
             pass
 
+    # sanity check
     if not EXP_FILE_NAME.exists():
         raise Exception('ExpNames file not found, make sure directory didn\'t change through some unknown black magic')
     shutil.copyfile(STARTING_EXP_FILE_NAME, EXP_FILE_NAME)
 
+    # The real stuff
     client = Bot(chatlog_file=chatlog_file, restream_link=link)
     keyboard.add_hotkey('ctrl+alt+1', lambda: keyboard_break(client))
     keyboard.add_hotkey('ctrl+alt+backspace', lambda: fuck_with_conor(client))
@@ -600,15 +615,15 @@ async def main():
     await client.loop()
 
 if __name__ == "__main__":
-    if not os.path.isdir('tts_sounds'):
-        os.mkdir('tts_sounds')
-    if not os.path.isdir('bans'):
-        os.mkdir('bans')
-    if not os.path.isdir('chatlogs'):
-        os.mkdir('chatlogs')
+    if not os.path.isdir(str(TTS_FOLDER)):
+        os.mkdir(str(TTS_FOLDER))
+    if not os.path.isdir(str(BANS_FOLDER)):
+        os.mkdir(str(BANS_FOLDER))
+    if not os.path.isdir(str(CHATLOG_FOLDER)):
+        os.mkdir(str(CHATLOG_FOLDER))
     if not os.path.isfile(BAN_FILE):
         with open(BAN_FILE, 'w') as _:
             pass
-    for name in os.listdir('tts_sounds'):
-        os.remove(f'tts_sounds\\{name}')
+    for name in os.listdir(str(TTS_FOLDER)):
+        os.remove(str(TTS_FOLDER / name))
     asyncio.run(main())

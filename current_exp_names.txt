@@ -71,7 +71,6 @@ missing paths
 fun ideas
 seconds of lore
 Paths of Pain
-$Charge Jumps$
 *Shades of Blue*
 *Fake Water Veins*
 *Drops of Water*
@@ -79,3 +78,12 @@ Strictly superior @Warmth Returned's@
 Experience Lost
 *R*$a$#i#@n@*b*$o$#w#@s@
 #Good Lucks#
+experience'; DROP TABLE Pickups;--
+Woke Points
+*Extraordinarily painful double bash chains that cause complete and total agony when attempted* because of how hard to #effectively execute they are#, a good example of this would be to take a $Baneling$ from @Horu fields@ all the way to the *blue wall* at #Valley entry#, I also think I owe you an apology for adding something quite this long to the list of $experience$ names you use, so I am truly sorry about that @(not really)@
+FACS
+Adoring Fans
+*P*@u@*r*@p@*l*@e@ *K*@e@*y*@s@*t*@o@*n*@e@*s*
+brain corals
+Bottles of Beer on the Wall
+$Skills$ on the @Final Escape@

@@ -334,6 +334,7 @@ class Bot:
             await self.send_relic_get_chat()
 
     def should_auto_ban(self, message: ChatMessage):
+        if 'boostprox.online' in message.message.replace(' ', ''): return True
         try:
             is_unicode = not all(ord(c) < 128 for c in message.message)
             return ('.com' in message.message or '.ru' in message.message) and is_unicode

@@ -336,6 +336,7 @@ class Bot:
     def should_auto_ban(self, message: ChatMessage):
         if 'boostprox.online' in message.message.replace(' ', ''): return True
         if 'streamboo.live' in message.message.replace(' ', ''): return True
+        if 'streamboo.com' in message.message.replace(' ', ''): return True
         try:
             is_unicode = not all(ord(c) < 128 for c in message.message)
             return ('.com' in message.message or '.ru' in message.message or '.net' in message.message) and is_unicode

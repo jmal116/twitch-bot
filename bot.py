@@ -302,8 +302,8 @@ class Bot:
                 'youtube': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
                 'twitter': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
                 'socials': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
-                'worstseed': r'https://orirando.com/?param_id=6245862963412992', # Required logical progression: stomp + bash + glide + wind into valley -> climb in left sorrow -> gs shards by stomp tree and far left grotto -> wv shard on forlorn escape + wv shard on ms 6 (with exactly 6 available mapstones) -> cflame in ginso escape -> 4 ss shards in plants (including 1 in ginso and 1 in forlorn) -> grenade in horu -> relic in grandpa's house. Truly incredible
-                'badseeds': r'https://orirando.com/?param_id=6245862963412992 https://orirando.com/?param_id=6260102851985408 https://orirando.com/?param_id=5120055155097600 https://orirando.com/?param_id=5445971634814976 https://orirando.com/?param_id=5157695887769600 https://orirando.com/?param_id=5082275993616384 https://orirando.com/?param_id=5095303099187200'
+                'worstseed': r'https://orirando.com/?param_id=5113274911686656', # Required logical progression: Bash + Valley tp + stomp -> grenade on walk to forlorn -> SS grandpa's house -> GS (I DNFed here) + cjump in horu -> Glide in forlorn -> WV in upper left sorrow
+                'badseeds': r'https://orirando.com/?param_id=5113274911686656 https://orirando.com/?param_id=6260102851985408 https://orirando.com/?param_id=5120055155097600'
             }
             to_send = responses.get(cmd, None)
             if to_send is not None:
@@ -560,26 +560,27 @@ def keyboard_break(bot):
         print('Nothing to skipo')
 
 def fuck_with_conor(bot: Bot):
-    pool = [
-        'uwu',
-        '🤔',
-        '( ´･･)ﾉ(._.`)',
-        '(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
-        '(⌐■_■)',
-        '( •_•)>⌐■-■',
-        '( ͡°( ͡° ͜ʖ( ͡° ͜ʖ ͡°)ʖ ͡°) ͡°)',
-        '¯\_(ツ)_/¯',
-        '¯\_( ͡° ͜ʖ ͡°)_/¯',
-        "What the fuck did you just fucking say about me, you little bitch? I'll have you know I graduated top of my class in the Navy Seals, and I've been involved in numerous secret raids on Al-Quaeda, and I have over 300 confirmed kills. I am trained in gorilla warfare and I'm the top sniper in the entire US armed forces. You are nothing to me but just another target. I will wipe you the fuck out with precision the likes of which has never been seen before on this Earth, mark my fucking words. You thi",
-        'The FitnessGram™ Pacer Test is a multistage aerobic capacity test that progressively gets more difficult as it continues. The 20 meter pacer test will begin in 30 seconds. Line up at the start. The running speed starts slowly, but gets faster each minute after you hear this signal. [beep] A single lap should be completed each time you hear this sound. [ding] Remember to run in a straight line, and run as long as possible. The second time you fail to complete a lap before the sound, your test is over. The test will begin on the word start. On your mark, get ready, start.',
-        'O-oooooooooo AAAAE-A-A-I-A-U- JO-oooooooooooo AAE-O-A-A-U-U-A- E-eee-ee-eee AAAAE-A-E-I-E-A-JO-ooo-oo-oo-oo EEEEO-A-AAA-AAAA',
-        "I'm the Scatman Ski-bi dibby dib yo da dub dub Yo da dub dub Ski-bi dibby dib yo da dub dub Yo da dub dub (I'm the Scatman) Ski-bi dibby dib yo da dub dub Yo da dub dub Ski-bi dibby dib yo da dub dub Yo da dub dub Ba-da-ba-da-ba-be bop bop bodda bope Bop ba bodda bope Be bop ba bodda bope Bop ba bodda Ba-da-ba-da-ba-be bop ba bodda bope Bop ba bodda bope Be bop ba bodda bope Bop ba bodda bope Ski-bi dibby dib yo da dub dub",
-        'Good luck on your rando!',
-        'jmal11HideBashS',
-    ]
-    choice = random.choice(pool)
-    asyncio.run(bot.send_conor_message(choice[:500]))
-    asyncio.run(bot.send_chat_message(f'Sending message to wespr_: {choice}'[:500]))
+    # pool = [
+    #     'uwu',
+    #     '🤔',
+    #     '( ´･･)ﾉ(._.`)',
+    #     '(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
+    #     '(⌐■_■)',
+    #     '( •_•)>⌐■-■',
+    #     '( ͡°( ͡° ͜ʖ( ͡° ͜ʖ ͡°)ʖ ͡°) ͡°)',
+    #     '¯\_(ツ)_/¯',
+    #     '¯\_( ͡° ͜ʖ ͡°)_/¯',
+    #     "What the fuck did you just fucking say about me, you little bitch? I'll have you know I graduated top of my class in the Navy Seals, and I've been involved in numerous secret raids on Al-Quaeda, and I have over 300 confirmed kills. I am trained in gorilla warfare and I'm the top sniper in the entire US armed forces. You are nothing to me but just another target. I will wipe you the fuck out with precision the likes of which has never been seen before on this Earth, mark my fucking words. You thi",
+    #     'The FitnessGram™ Pacer Test is a multistage aerobic capacity test that progressively gets more difficult as it continues. The 20 meter pacer test will begin in 30 seconds. Line up at the start. The running speed starts slowly, but gets faster each minute after you hear this signal. [beep] A single lap should be completed each time you hear this sound. [ding] Remember to run in a straight line, and run as long as possible. The second time you fail to complete a lap before the sound, your test is over. The test will begin on the word start. On your mark, get ready, start.',
+    #     'O-oooooooooo AAAAE-A-A-I-A-U- JO-oooooooooooo AAE-O-A-A-U-U-A- E-eee-ee-eee AAAAE-A-E-I-E-A-JO-ooo-oo-oo-oo EEEEO-A-AAA-AAAA',
+    #     "I'm the Scatman Ski-bi dibby dib yo da dub dub Yo da dub dub Ski-bi dibby dib yo da dub dub Yo da dub dub (I'm the Scatman) Ski-bi dibby dib yo da dub dub Yo da dub dub Ski-bi dibby dib yo da dub dub Yo da dub dub Ba-da-ba-da-ba-be bop bop bodda bope Bop ba bodda bope Be bop ba bodda bope Bop ba bodda Ba-da-ba-da-ba-be bop ba bodda bope Bop ba bodda bope Be bop ba bodda bope Bop ba bodda bope Ski-bi dibby dib yo da dub dub",
+    #     'Good luck on your rando!',
+    #     'jmal11HideBashS',
+    # ]
+    # choice = random.choice(pool)
+    # asyncio.run(bot.send_conor_message(choice[:500]))
+    # asyncio.run(bot.send_chat_message(f'Sending message to wespr_: {choice}'[:500]))
+    asyncio.run(bot.send_chat_message(r'https://www.tsa.gov/travel/security-screening/whatcanibring/items/live-lobster'))
 
 async def main():
     if len(sys.argv) == 1:

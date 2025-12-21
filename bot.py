@@ -302,8 +302,8 @@ class Bot:
                 'youtube': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
                 'twitter': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
                 'socials': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
-                'worstseed': r'https://orirando.com/?param_id=5113274911686656', # Required logical progression: Bash + Valley tp + stomp -> grenade on walk to forlorn -> SS grandpa's house -> GS (I DNFed here) + cjump in horu -> Glide in forlorn -> WV in upper left sorrow
-                'badseeds': r'https://orirando.com/?param_id=5113274911686656 https://orirando.com/?param_id=6260102851985408 https://orirando.com/?param_id=5120055155097600'
+                'worstseed': r'https://orirando.com/?param_id=5142336589791232', # Required logical progression: cjump + climb + glide + stomp + sunstone -> clean water in L2 -> base in swamp swim -> WV MS7, with 8 available mapstones. Notable mapstones include vanilla SS, forlorn escape, LGLS, VLS, DG underwater energy door 
+                'badseeds': r'https://orirando.com/?param_id=5142336589791232' r'https://orirando.com/?param_id=5113274911686656 https://orirando.com/?param_id=6260102851985408 https://orirando.com/?param_id=5120055155097600'
             }
             to_send = responses.get(cmd, None)
             if to_send is not None:

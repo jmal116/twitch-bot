@@ -115,3 +115,9 @@ additional monitors
 Eagle plushies
 Clowns
 Variable Delay Vine Booms
+Days until Christmas
+#oranges#
+`; DROP TABLE exp_names;
+Rickrolls
+Variable Delay Vine Booms
+<coroutine object RandomizerLeague._get_reminder at 0x7f9003b731c0>

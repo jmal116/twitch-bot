@@ -12,6 +12,7 @@ from multiprocessing import Process, Value
 from pathlib import Path
 import shutil
 import glob
+import dotenv
 
 import keyboard
 import playsound
@@ -45,8 +46,9 @@ ChatMessage = namedtuple('ChatMessage', ['user', 'message', 'command'])
 class Bot:
 
     def __init__(self, chatlog_file, restream_link=None):
+        envs = dotenv.dotenv_values()
         self.client_id = 'lil5xkerbfl7lsj2pk1qhvgsi8fro4'
-        self.client_secret = 'm33z33z1d60n67n2kev7iw54foo6db'
+        self.client_secret = envs['TWITCH_CLIENT_SECRET']
         self.pubsub_connection = None
         self.eventsub_id = None
         self.chat_connection = None

@@ -4,6 +4,7 @@ current_seed.txt
 .vscode/
 notes.txt
 chatlogs/
+.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

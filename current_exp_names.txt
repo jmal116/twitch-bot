@@ -121,3 +121,11 @@ Days until Christmas
 Rickrolls
 Variable Delay Vine Booms
 <coroutine object RandomizerLeague._get_reminder at 0x7f9003b731c0>
+Steven Universe Bellybutton Gems
+backups before the next pickup
+Very basic guide to making your own experience names: step 1: download the newest Assembly-CSharp.dll, step 2: find the RandomizerSettings.txt file, open it and set Randomized Experience Names: to True step 3: load the game to create an ExpNames.txt file, step 4: find the ExpNames.txt file (it should be in the Ori DE folder, where things like Randomizer.txt are), step 5: add/remove whatever you want to it. If you want to add colors to your names doing something like @Sunstones@ will make the tex
+extremely long custom experience names
+delayed vine booms
+Undelayed Vine Booms
+Affected Trout Populations
+The longest double bash chain I have ever completed successfully completed would be taking a Baneling from the bottom of valley up to the Kuro rocks just because I felt like it. I recently made a plando: FlutteringLeaf, unfortunately no one's even gotten to the "fun" parts yet, maybe I need to get Sirius to beat it, so that people know that it is actually humanly possible. Why is Wilhelm XP in standard logic with just Wall Jump, Bash, and the Valley TP? that is just cruel Torin. Limit's reached.

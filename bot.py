@@ -301,9 +301,9 @@ class Bot:
         else:
             responses = {
                 'furnace': r'https://www.twitch.tv/videos/452470158',
-                'youtube': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
-                'twitter': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
-                'socials': r'Youtube: https://www.youtube.com/@jmal116    Twitter: https://twitter.com/jmal116',
+                'youtube': r'Youtube: https://www.youtube.com/@jmal116    Vods: https://www.youtube.com/@Jmal116Vods',
+                'expnames': r'https://github.com/jmal116/twitch-bot/blob/master/current_exp_names.txt',
+                'xpnames': r'https://github.com/jmal116/twitch-bot/blob/master/current_exp_names.txt',
                 'worstseed': r'https://orirando.com/?param_id=5142336589791232', # Required logical progression: cjump + climb + glide + stomp + sunstone -> clean water in L2 -> base in swamp swim -> WV MS7, with 8 available mapstones. Notable mapstones include vanilla SS, forlorn escape, LGLS, VLS, DG underwater energy door 
                 'badseeds': r'https://orirando.com/?param_id=5142336589791232' r'https://orirando.com/?param_id=5113274911686656 https://orirando.com/?param_id=6260102851985408 https://orirando.com/?param_id=5120055155097600'
             }

@@ -3,7 +3,6 @@ Apples
 Bananas
 Bells
 Bits
-Bolts
 Brick
 Brownie Points
 Bytes
@@ -132,3 +131,7 @@ The longest double bash chain I have ever completed successfully completed would
 $Igor$
 @Warmth Returned@
 Good Luck on Your Rando!
+unused emoji slots
+pete nut's peanuts
+Bears
+. Hundred. Cigarettes

@@ -137,3 +137,14 @@ Bears
 . Hundred. Cigarettes
 Failed rocket jumps on 1 energy
 quantum birds
+Kuro concussions
+Annoying frogs
+oddly specific experience names
+Generically vague experience names
+Perfectly specific experience names
+Scientifically accurate culturally relevant experience names
+Things that could go wrong
+Things that could go right
+Things that could go either way
+gigabytes of data in the experience names file
+People in chat out of channel points because they added too many experience names.

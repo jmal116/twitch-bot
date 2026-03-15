@@ -148,3 +148,6 @@ Things that could go right
 Things that could go either way
 gigabytes of data in the experience names file
 People in chat out of channel points because they added too many experience names.
+unhit lanterns
+times looking at the logic map to find out which of the...
+stupid pickups left in logic is progression

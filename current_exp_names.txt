@@ -157,3 +157,6 @@ you just lost the game
 Event keys on locations that are impossible to miss after thinking about how many pickups you are able to get in a given area
 nice
 "r's" on the word Glorp
+Custom XP Names
+houses, each alike in dignity
+lööps

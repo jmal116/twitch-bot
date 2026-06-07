@@ -166,3 +166,4 @@ xp off
 Times progression was in progression vault
 Times progression was not in progression vault
 Times progression could have been in progression vault, but the location was never checked
+Ability Cells

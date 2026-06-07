@@ -423,7 +423,7 @@ class Bot:
         username = event['user_name']
         if reward_id == TTS_REWARD_ID:
             text = event['user_input']
-            self.tts.save_to_file(f'{username} has redeemed Text to Speech, saying {text}', f'{str(TTS_FOLDER)}\\tts-{self.num_tts_redemptions}.wav')
+            self.tts.save_to_file(text, f'{str(TTS_FOLDER)}\\tts-{self.num_tts_redemptions}.wav')
             self.tts.runAndWait()
             self.num_tts_redemptions += 1
         elif reward_id == QUACK_ID:

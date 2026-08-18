@@ -178,3 +178,11 @@ Times going to horu thinking you have 10/10 trees when you do not in fact have 1
 000 exp
 rings for Mortal Men doomed to die
 minutes of grampa's house cutscenes
+things
+Hey, you! You're finally awake. You were trying to cross the border, right?
+Left side teleporters
+nothings
+numbers I inserted %d here
+
+jmal11HideBash
+Days since Jmal streamed

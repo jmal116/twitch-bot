@@ -192,3 +192,6 @@ weeks in one week
 Icelandic Kroner
 increasingly tenuous experience names
 eye's
+seconds before the racist cutscene plays
+<script>alert('Pocket sand!')</script>
+[object Object]

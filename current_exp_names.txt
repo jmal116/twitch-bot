@@ -195,3 +195,4 @@ eye's
 seconds before the racist cutscene plays
 <script>alert('Pocket sand!')</script>
 [object Object]
+Times Jmal assumed that he had the @Sunstone@ when he did not in fact have the @Sunstone@

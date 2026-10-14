@@ -717,22 +717,11 @@ async def main():
         raise Exception('ExpNames file not found, make sure directory didn\'t change through some unknown black magic')
     shutil.copyfile(LOCAL_EXP_FILE_NAME, EXP_FILE_NAME)
 
-    # Create local settings file if none exists
-    default_settings = [
-        ['Pickup Message Background Color', '0, 0, 0, 255'],
-        ['Multiworld Outbound Message Background Color', '64, 64, 64, 255'],
-        ['Temp Row Spacing', '0.8'],
-        ['Temp Row Horizontal Offset', '0'],
-        ['Temp Row Scale', '0.7']
-    ]
-    if not LOCAL_RANDO_SETTINGS_FILE_NAME.exists():
-        with open(LOCAL_RANDO_SETTINGS_FILE_NAME, 'w') as file:
-            file.writelines([f'{name}: {val}\n' for name, val in default_settings])
-
     # Initialize in game settings to match whatever is currently in local file
     with open(LOCAL_RANDO_SETTINGS_FILE_NAME, 'r') as file:
         lines = file.readlines()
         for line in lines:
+            if line[:2] == '//' or ':' not in line: continue
             name, val = line.split(':')
             _edit_setting_line(RANDO_SETTINGS_FILE_NAME, name.strip(), val.strip())
 

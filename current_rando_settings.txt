@@ -1,5 +1,18 @@
+// Red, Green, Blue, Transparency (0-255 for each): Background color for pickup messages.
+// Default: 0, 0, 0, 255
 Pickup Message Background Color: 0, 0, 0, 255
+
+// Red, Green, Blue, Transparency (0-255 for each): Background color for pickup messages sent to another Player.
+// Both local pickups and pickups received from another player will use the "Pickup Message Background Color" color.
+// This is for pickups that you find in your seed and send to another player.
+// Default: 64, 64, 64, 255
 Multiworld Outbound Message Background Color: 64, 64, 64, 255
+
+// Vertical gap between a HUD bar and its temporary-resource row, in strip heights.
 Temp Row Spacing: 0.8
+
+// Horizontal shift of the temporary-resource rows, in strip heights. Positive pushes away from the experience wheel.
 Temp Row Horizontal Offset: 0
+
+// (0.2-2.0) Temporary-resource row size relative to the base bar.
 Temp Row Scale: 0.7

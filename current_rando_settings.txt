@@ -1,0 +1,5 @@
+Pickup Message Background Color: 0, 0, 0, 255
+Multiworld Outbound Message Background Color: 64, 64, 64, 255
+Temp Row Spacing: 0.8
+Temp Row Horizontal Offset: 0
+Temp Row Scale: 0.7

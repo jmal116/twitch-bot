@@ -31,17 +31,23 @@ VINE_BOOM_REWARD_ID = "5e9adf48-6df6-4e02-8e39-fe9e7535e7c4"
 CHRISTMAS_ID = "4a10ec1c-8c3f-42cb-bd6f-20bda8b37d3e"
 ADD_EXP_ID = 'c8432ff9-3675-425d-85e5-1a867a39c861'
 REMOVE_EXP_ID = '986d744d-5a72-407f-8952-4aa809718a1e'
+PICKUP_BG_COLOR_ID = 'd5aeb54b-2e39-44dc-aed2-c20f94d3b8ee'
+MW_PICKUP_BG_COLOR_ID = '5c45678f-52e4-42cf-8810-7a7f148b6271'
 
 MINECRAFT_GAME_ID = '27471'
 
-EXP_FILE_NAME = Path("E:\SteamLibrary\steamapps\common\Ori DE\ExpNames.txt")
-STARTING_EXP_FILE_NAME = Path('current_exp_names.txt')
+ORI_FOLDER = Path("E:\SteamLibrary\steamapps\common\Ori DE")
+EXP_FILE_NAME = ORI_FOLDER / "ExpNames.txt"
+LOCAL_EXP_FILE_NAME = Path('current_exp_names.txt')
+RANDO_SETTINGS_FILE_NAME = ORI_FOLDER / "RandomizerSettings.txt"
+LOCAL_RANDO_SETTINGS_FILE_NAME = Path('current_rando_settings.txt')
 CHATLOG_FOLDER = Path('chatlogs')
 TTS_FOLDER = Path('tts_sounds')
 BANS_FOLDER = Path('bans')
 BAN_FILE = str(BANS_FOLDER / 'bans.txt')
 
 ChatMessage = namedtuple('ChatMessage', ['user', 'message', 'command'])
+Color = namedtuple('Color', ['r', 'g', 'b', 'a'])
 
 class Bot:
 
@@ -380,39 +386,101 @@ class Bot:
         Process(target=throw_on_ground_helper, args=(game_id == MINECRAFT_GAME_ID,)).start()
 
     def add_exp_name(self, name):
-        with open(STARTING_EXP_FILE_NAME, 'a') as file:
+        with open(LOCAL_EXP_FILE_NAME, 'a') as file:
             file.write(f'{name}\n') 
-        shutil.copyfile(STARTING_EXP_FILE_NAME, EXP_FILE_NAME)
+        shutil.copyfile(LOCAL_EXP_FILE_NAME, EXP_FILE_NAME)
 
     async def remove_exp_name(self, name: str, redemption_id, username):
         name_comp = name.upper().strip()
-        with open(STARTING_EXP_FILE_NAME, 'r') as file:
+        with open(LOCAL_EXP_FILE_NAME, 'r') as file:
             lines = file.readlines()
         lines_comp = [line.upper().strip() for line in lines]
         if name_comp in lines_comp:
-            with open(STARTING_EXP_FILE_NAME, 'w') as file:
+            with open(LOCAL_EXP_FILE_NAME, 'w') as file:
                 for line, line_comp in zip(lines, lines_comp):
                     if name_comp != line_comp:
                         file.write(line)
-            shutil.copyfile(STARTING_EXP_FILE_NAME, EXP_FILE_NAME)
+            shutil.copyfile(LOCAL_EXP_FILE_NAME, EXP_FILE_NAME)
             is_complete = True
         else:
             is_complete = False
 
+        self.complete_redemption(redemption_id, REMOVE_EXP_ID, not is_complete)
+        if not is_complete:
+            await self.send_chat_message(f'@{username} that experience name isn\'t in the list!')
+
+    def _parse_color(self, input: str):
+        # try parsing RBGA first
+        input_pieces = input.split(',')
+        valid = False
+        if len(input_pieces) == 3: input_pieces.append(255)
+        if len(input_pieces) == 4:
+            try:
+                r = int(input_pieces[0])
+                g = int(input_pieces[1])
+                b = int(input_pieces[2])
+                a = int(input_pieces[3])
+                valid = True
+            except ValueError:
+                pass
+        
+        # try parsing hex next
+        if not valid:
+            input = input.strip().strip('#')
+            input = input if len(input) == 8 else input+'ff'
+            if len(input) == 8:
+                try:
+                    r = int(input[0:2], 16)
+                    g = int(input[2:4], 16)
+                    b = int(input[4:6], 16)
+                    a = int(input[6:8], 16)
+                    valid = True
+                except ValueError:
+                    pass
+
+        # Make sure values are valid range
+        if valid:
+            for val in (r, g, b, a):
+                valid = False if val < 0 or val > 255 else valid
+
+        if valid:
+            return Color(r, g, b, a)
+        else:
+            return None
+
+    def change_rando_setting(self, setting_name, new_value):
+        """Update the local settings file and the real game settings file"""
+        if not _edit_setting_line(LOCAL_RANDO_SETTINGS_FILE_NAME, setting_name, new_value):
+            return False
+        return _edit_setting_line(RANDO_SETTINGS_FILE_NAME, setting_name, new_value)
+    
+    async def change_color_setting(self, setting_name, user_input, username, event_id, reward_id):
+        color = self._parse_color(user_input)
+        # print(f'color: {color}')
+        if color is None:
+            await self.send_chat_message(f'@{username} That\'s not a valid color!')
+            self.complete_redemption(event_id, reward_id, True)
+            return
+        new_val = f"{color.r}, {color.g}, {color.b}, {color.a}"
+        if self.change_rando_setting(setting_name, new_val):
+            self.complete_redemption(event_id, reward_id, False)
+            return
+
+    def complete_redemption(self, redemption_id, reward_id, should_refund):
+        """Either marks the reward as fulfilled, or refunds points if it couldn't be completed"""
         resp = requests.patch(r'https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions',          
             headers=self._format_api_headers(use_auth=True),
             params={
                 'broadcaster_id': self.channel_id,
                 'id': redemption_id,
-                'reward_id': REMOVE_EXP_ID
+                'reward_id': reward_id
             },
             json= {
-                'status': 'FULFILLED' if is_complete else 'CANCELED'
+                'status': 'CANCELED' if should_refund else 'FULFILLED'
             }
         )
         # print(resp.json())
-        if not is_complete:
-            await self.send_chat_message(f'@{username} that experience name isn\'t in the list!')
+        return resp
 
     async def process_redemption(self, response):
         if self.do_reminder:
@@ -421,8 +489,12 @@ class Bot:
         reward_id = event['reward']['id']
         user_id = event['user_id']
         username = event['user_name']
+        reward_name = event['reward']['title']
+        user_input = event.get('user_input', '')
+        self.log_chat_message(ChatMessage(self.bot_chatlog_name, f'REDEMPTION - user: {username}, reward: {reward_name}, input: {user_input}', False))
+
         if reward_id == TTS_REWARD_ID:
-            text = event['user_input']
+            text = user_input
             self.tts.save_to_file(text, f'{str(TTS_FOLDER)}\\tts-{self.num_tts_redemptions}.wav')
             self.tts.runAndWait()
             self.num_tts_redemptions += 1
@@ -447,9 +519,13 @@ class Bot:
             else:
                 play_sound_effect('mariah_carey')
         elif reward_id == ADD_EXP_ID:
-            self.add_exp_name(event['user_input'])
+            self.add_exp_name(user_input)
         elif reward_id == REMOVE_EXP_ID:
-            await self.remove_exp_name(event['user_input'], event['id'], username)
+            await self.remove_exp_name(user_input, event['id'], username)
+        elif reward_id == PICKUP_BG_COLOR_ID:
+            await self.change_color_setting('Pickup Message Background Color', user_input, username, event['id'], reward_id)
+        elif reward_id == MW_PICKUP_BG_COLOR_ID:
+            await self.change_color_setting('Multiworld Outbound Message Background Color', user_input, username, event['id'], reward_id)
         
     def tts_sound_check(self):
         files = os.listdir(str(TTS_FOLDER))
@@ -512,6 +588,21 @@ class Bot:
         with open(BAN_FILE, 'w') as _:
             pass
 
+    async def create_channel_reward(self, title, cost):
+        """Twitch only lets the bot mark a reward as complete if the bot
+        was the one that created the reward, for mystical reasons"""
+        resp = requests.post(r'https://api.twitch.tv/helix/channel_points/custom_rewards',
+            headers=self._format_api_headers(use_auth=True),
+            params={
+                'broadcaster_id': self.channel_id
+            },
+            json={
+                'title': title,
+                'cost': cost
+            }
+        )
+        print(resp.json())
+
     async def check_reminder(self):
         if self.do_reminder and self.next_reminder < datetime.now():
             await self.send_chat_message(rf"This game is part of the doubles tournament. I'm not reading chat, have my mic turned off, and have disabled all channel rewards and chatbot features. Watch the race with commentary: {self.restream_link}")
@@ -559,7 +650,7 @@ def keyboard_break(bot):
         bot.num_tts_read.value += 1
         bot.is_speaking.value = False
     except Exception:
-        print('Nothing to skipo')
+        print('Nothing to skip')
 
 def fuck_with_conor(bot: Bot):
     # pool = [
@@ -584,6 +675,23 @@ def fuck_with_conor(bot: Bot):
     # asyncio.run(bot.send_chat_message(f'Sending message to wespr_: {choice}'[:500]))
     asyncio.run(bot.send_chat_message(r'https://www.tsa.gov/travel/security-screening/whatcanibring/items/live-lobster'))
 
+def _edit_setting_line(file_name, setting_name, new_value):
+    try:
+        with open(file_name, 'r') as file:
+            lines = file.readlines()
+        found = False
+        with open(file_name, 'w') as file:
+            for line in lines:
+                setting = line.split(':')[0]
+                if setting == setting_name:
+                    found = True
+                    file.write(f"{setting_name}: {new_value}\n")
+                else:
+                    file.write(line)
+    except:
+        return False
+    return found
+
 async def main():
     if len(sys.argv) == 1:
         link = None
@@ -607,7 +715,26 @@ async def main():
     # sanity check
     if not EXP_FILE_NAME.exists():
         raise Exception('ExpNames file not found, make sure directory didn\'t change through some unknown black magic')
-    shutil.copyfile(STARTING_EXP_FILE_NAME, EXP_FILE_NAME)
+    shutil.copyfile(LOCAL_EXP_FILE_NAME, EXP_FILE_NAME)
+
+    # Create local settings file if none exists
+    default_settings = [
+        ['Pickup Message Background Color', '0, 0, 0, 255'],
+        ['Multiworld Outbound Message Background Color', '64, 64, 64, 255'],
+        ['Temp Row Spacing', '0.8'],
+        ['Temp Row Horizontal Offset', '0'],
+        ['Temp Row Scale', '0.7']
+    ]
+    if not LOCAL_RANDO_SETTINGS_FILE_NAME.exists():
+        with open(LOCAL_RANDO_SETTINGS_FILE_NAME, 'w') as file:
+            file.writelines([f'{name}: {val}\n' for name, val in default_settings])
+
+    # Initialize in game settings to match whatever is currently in local file
+    with open(LOCAL_RANDO_SETTINGS_FILE_NAME, 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            name, val = line.split(':')
+            _edit_setting_line(RANDO_SETTINGS_FILE_NAME, name.strip(), val.strip())
 
     # The real stuff
     client = Bot(chatlog_file=chatlog_file, restream_link=link)
@@ -618,6 +745,7 @@ async def main():
     await client.connect_command()
     await client.connect_conor()
     await client.unban_users()
+    # await client.create_channel_reward('Change Multiworld Pickup Background Color', 100)
     await client.loop()
 
 if __name__ == "__main__":

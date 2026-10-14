@@ -33,6 +33,7 @@ ADD_EXP_ID = 'c8432ff9-3675-425d-85e5-1a867a39c861'
 REMOVE_EXP_ID = '986d744d-5a72-407f-8952-4aa809718a1e'
 PICKUP_BG_COLOR_ID = 'd5aeb54b-2e39-44dc-aed2-c20f94d3b8ee'
 MW_PICKUP_BG_COLOR_ID = '5c45678f-52e4-42cf-8810-7a7f148b6271'
+MEGA_HEALTH_DISPLAY_ID = '2daa1c32-da64-476d-a747-04906f38062f'
 
 MINECRAFT_GAME_ID = '27471'
 
@@ -311,7 +312,12 @@ class Bot:
                 'expnames': r'https://github.com/jmal116/twitch-bot/blob/master/current_exp_names.txt',
                 'xpnames': r'https://github.com/jmal116/twitch-bot/blob/master/current_exp_names.txt',
                 'worstseed': r'https://orirando.com/?param_id=5142336589791232', # Required logical progression: cjump + climb + glide + stomp + sunstone -> clean water in L2 -> base in swamp swim -> WV MS7, with 8 available mapstones. Notable mapstones include vanilla SS, forlorn escape, LGLS, VLS, DG underwater energy door 
-                'badseeds': r'https://orirando.com/?param_id=5142336589791232' r'https://orirando.com/?param_id=5113274911686656 https://orirando.com/?param_id=6260102851985408 https://orirando.com/?param_id=5120055155097600'
+                'badseeds': r'https://orirando.com/?param_id=5142336589791232' r'https://orirando.com/?param_id=5113274911686656 https://orirando.com/?param_id=6260102851985408 https://orirando.com/?param_id=5120055155097600',
+                'readme': r'https://github.com/jmal116/twitch-bot/blob/master/README.md',
+                'info': r'https://github.com/jmal116/twitch-bot/blob/master/README.md',
+                'redemptions': r'https://github.com/jmal116/twitch-bot/blob/master/README.md',
+                'help': r'https://github.com/jmal116/twitch-bot/blob/master/README.md',
+                'rewards': r'https://github.com/jmal116/twitch-bot/blob/master/README.md',
             }
             to_send = responses.get(cmd, None)
             if to_send is not None:
@@ -734,7 +740,7 @@ async def main():
     await client.connect_command()
     await client.connect_conor()
     await client.unban_users()
-    # await client.create_channel_reward('Change Multiworld Pickup Background Color', 100)
+    # await client.create_channel_reward('Change Mega Health/Energy Display', 100)
     await client.loop()
 
 if __name__ == "__main__":

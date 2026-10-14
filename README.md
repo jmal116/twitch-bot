@@ -16,7 +16,7 @@ Changes the settings for how the additional resource row for mega health and meg
 
 You can see the current values of these settings (as of the start of this stream) in [current_rando_settings.txt](/current_rando_settings.txt).
 
-Expected input format is 3 numbers, separated by commas. These values modify the settings `Temp Row Spacing`, `Temp Row Horizontal Offset`, and `Temp Row Scale`. For example, the input `0.8, 0, 0.7` would set the vertical spacing of the temp row to 0.8, the horizontal offset to 0, and the scale of the cells to 0.7.
+Expected input format is 3 numbers, separated by commas. These values modify the settings `Temp Row Spacing`, `Temp Row Horizontal Offset`, and `Temp Row Scale`. The scale variable must be between 0.2 and 2.0. For example, the input `0.8, 0, 0.7` would set the vertical spacing of the temp row to 0.8, the horizontal offset to 0, and the scale of the cells to 0.7.
 
 ### Change Pickup Background Color
 
@@ -43,8 +43,18 @@ Many experience pickups do not say "experience" as the pickup name, instead they
 
 The current list of experience names (as of the start of this stream) is in [current_exp_names.txt](/current_exp_names.txt).
 
+The game interprets some characters specially, allowing for you to change the color of the text in limited ways and display some icons. For example:
+* `@Sunstone@` - This text is red
+* `*Fake Water Veins*` - This text is blue
+* `#Good Lucks#` - This text is green
+* `Press <icon>D</><icon>A</><icon>~</>` - This renders some icons, though I honestly have no idea where these icons come from, how to find out what the available icons are, or even who added this one to the list in the first place
+
 ### Remove an experience name
 
-If someone really made you mad, you can remove the expereience name they added to the list of random experience names from the previous reward.
+If someone really made you mad, you can remove the expereience name they added to the list of random experience names from the previous reward. The text needs to match exactly, but the bot will refund your points if you type something incorrectly.
 
 The current list of experience names (as of the start of this stream) is in [current_exp_names.txt](/current_exp_names.txt).
+
+### Ban yourself
+
+Only one way to find out ( ͡° ͜ʖ ͡°)

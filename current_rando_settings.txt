@@ -12,7 +12,7 @@ Multiworld Outbound Message Background Color: 64, 64, 64, 255
 Temp Row Spacing: 0.8
 
 // Horizontal shift of the temporary-resource rows, in strip heights. Positive pushes away from the experience wheel.
-Temp Row Horizontal Offset: 0
+Temp Row Horizontal Offset: 0.0
 
 // (0.2-2.0) Temporary-resource row size relative to the base bar.
 Temp Row Scale: 0.7

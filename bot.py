@@ -49,6 +49,7 @@ BAN_FILE = str(BANS_FOLDER / 'bans.txt')
 
 ChatMessage = namedtuple('ChatMessage', ['user', 'message', 'command'])
 Color = namedtuple('Color', ['r', 'g', 'b', 'a'])
+MegaDisplay = namedtuple('MegaDisplay', ['height', 'width', 'size'])
 
 class Bot:
 
@@ -464,13 +465,43 @@ class Bot:
         color = self._parse_color(user_input)
         # print(f'color: {color}')
         if color is None:
-            await self.send_chat_message(f'@{username} That\'s not a valid color!')
+            await self.send_chat_message(f'@{username} That\'s not a valid color! See https://github.com/jmal116/twitch-bot/blob/master/README.md#change-pickup-background-color')
             self.complete_redemption(event_id, reward_id, True)
             return
         new_val = f"{color.r}, {color.g}, {color.b}, {color.a}"
         if self.change_rando_setting(setting_name, new_val):
             self.complete_redemption(event_id, reward_id, False)
             return
+        
+    def _parse_mega_display(self, user_input: str):
+        pieces = user_input.split(',')
+        if len(pieces) != 3:
+            return None
+        try:
+            height = float(pieces[0])
+            width = float(pieces[1])
+            size = float(pieces[2])
+        except ValueError:
+            return None
+        if size < 0.2 or size > 2.0:
+            return None
+        return MegaDisplay(height, width, size)
+        
+        
+    async def change_mega_health_display(self, user_input, username, event_id, reward_id):
+        values = self._parse_mega_display(user_input)
+        if values is None:
+            await self.send_chat_message(f'@{username} That\'s not valid input! See https://github.com/jmal116/twitch-bot/blob/master/README.md#change-mega-healthenergy-display')
+            self.complete_redemption(event_id, reward_id, True)
+            return
+        worked = self.change_rando_setting('Temp Row Spacing', values.height)
+        worked = worked and self.change_rando_setting('Temp Row Horizontal Offset', values.width)
+        worked = worked and self.change_rando_setting('Temp Row Scale', values.size)
+        if worked:
+            self.complete_redemption(event_id, reward_id, False)
+        else:
+            await self.send_chat_message(f'@{username} Something went wrong, I should probably look into that!')
+            self.complete_redemption(event_id, reward_id, True)
 
     def complete_redemption(self, redemption_id, reward_id, should_refund):
         """Either marks the reward as fulfilled, or refunds points if it couldn't be completed"""
@@ -532,6 +563,8 @@ class Bot:
             await self.change_color_setting('Pickup Message Background Color', user_input, username, event['id'], reward_id)
         elif reward_id == MW_PICKUP_BG_COLOR_ID:
             await self.change_color_setting('Multiworld Outbound Message Background Color', user_input, username, event['id'], reward_id)
+        elif reward_id == MEGA_HEALTH_DISPLAY_ID:
+            await self.change_mega_health_display(user_input, username, event['id'], reward_id)
         
     def tts_sound_check(self):
         files = os.listdir(str(TTS_FOLDER))

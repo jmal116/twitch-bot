@@ -46,7 +46,8 @@ The current list of experience names (as of the start of this stream) is in [cur
 The game interprets some characters specially, allowing for you to change the color of the text in limited ways and display some icons. For example:
 * `@Sunstone@` - This text is red
 * `*Fake Water Veins*` - This text is blue
-* `#Good Lucks#` - This text is green
+* `#Good Lucks#` - This text is orange
+* `$Skills$` - This text is green
 * `Press <icon>D</><icon>A</><icon>~</>` - This renders some icons, though I honestly have no idea where these icons come from, how to find out what the available icons are, or even who added this one to the list in the first place
 
 ### Remove an experience name

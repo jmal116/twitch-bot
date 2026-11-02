@@ -511,7 +511,7 @@ class Bot:
         pickup_pieces = pickup.split('|')
         if len(pickup_pieces) !=2:
             return None
-        prefix = pickup_pieces[0].strip()
+        prefix = pickup_pieces[0].strip().upper()
 
         id_pieces = pickup_pieces[1].split('=')
         if len(id_pieces) == 2:
@@ -524,6 +524,11 @@ class Bot:
             return None
         if id == '' or count == '':
             return None
+        if count is not None:
+            try:
+                int(count)
+            except:
+                return None
 
         # Make sure prefix is supported and expected
         allowed_prefixes = [
@@ -581,15 +586,17 @@ class Bot:
                 range_high = range_list[1]
             elif len(range_list) == 1:
                 range_low = range_list[0]
-                range_high = None
+                range_high = 1E20 # I dare someone to put a bigger number than this
             else:
                 return None
 
             try:
                 range_low = int(range_low)
-                if range_high is not None:
-                    range_high = int(range_high)
+                range_high = int(range_high)
             except ValueError:
+                return None
+            
+            if range_low < 1 or range_high < 1 or range_low >= range_high:
                 return None
 
         # Skills must actually exist in the game
@@ -625,20 +632,21 @@ class Bot:
 
         # TPs must actually exist in the game
         allowed_tps = [
-            'Glades',
-            'Grove',
-            'Swamp',
-            'Grotto',
-            'Ginso',
-            'Valley',
-            'Forlorn',
-            'Sorrow',
-            'Horu',
-            'Blackroot'
+            'GLADES',
+            'GROVE',
+            'SWAMP',
+            'GROTTO',
+            'GINSO',
+            'VALLEY',
+            'FORLORN',
+            'SORROW',
+            'HORU',
+            'BLACKROOT'
         ]
         if prefix == 'TP':
-            if id not in allowed_tps:
+            if id.upper() not in allowed_tps:
                 return None
+            id = id.title()
 
         # RBs must be a number, I don't feel like doing any more validation than that
         if prefix == 'RB':
@@ -656,7 +664,7 @@ class Bot:
     def _parse_pickup_rename_rule(self, user_input: str):
         if ':' not in user_input:
             return None
-        pickup = user_input[:user_input.index(':')].strip().upper()
+        pickup = user_input[:user_input.index(':')].strip()
         new_name = user_input[user_input.index(':')+1:].strip()
         if pickup == '' or new_name == '':
             return None
@@ -685,12 +693,16 @@ class Bot:
             with open(LOCAL_PICKUP_NAMES_FILE_NAME, 'r') as file:
                 lines = file.readlines()
             with open(LOCAL_PICKUP_NAMES_FILE_NAME, 'w') as file:
+                found = False
                 for line in lines:
                     current_pickup = line.split(':')[0]
                     if current_pickup == parsed_input.pickup:
+                        found = True
                         file.write(f"{line.strip()} | {parsed_input.new_name}\n")
                     else:
                         file.write(line)
+                if not found:
+                    file.write(f'{parsed_input.pickup}: {parsed_input.new_name}\n')
             shutil.copyfile(LOCAL_PICKUP_NAMES_FILE_NAME, PICKUP_NAMES_FILE_NAME)
         except:
             await self.send_chat_message(f'@{username} Something went wrong, I should probably look into that!')

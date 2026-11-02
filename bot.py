@@ -34,6 +34,7 @@ REMOVE_EXP_ID = '986d744d-5a72-407f-8952-4aa809718a1e'
 PICKUP_BG_COLOR_ID = 'd5aeb54b-2e39-44dc-aed2-c20f94d3b8ee'
 MW_PICKUP_BG_COLOR_ID = '5c45678f-52e4-42cf-8810-7a7f148b6271'
 MEGA_HEALTH_DISPLAY_ID = '2daa1c32-da64-476d-a747-04906f38062f'
+RENAME_ANYTHING_ID = '5c110f9d-b996-4093-9be1-aeda9415a7cd'
 
 MINECRAFT_GAME_ID = '27471'
 
@@ -42,6 +43,8 @@ EXP_FILE_NAME = ORI_FOLDER / "ExpNames.txt"
 LOCAL_EXP_FILE_NAME = Path('current_exp_names.txt')
 RANDO_SETTINGS_FILE_NAME = ORI_FOLDER / "RandomizerSettings.txt"
 LOCAL_RANDO_SETTINGS_FILE_NAME = Path('current_rando_settings.txt')
+PICKUP_NAMES_FILE_NAME = ORI_FOLDER / "PickupNames.txt"
+LOCAL_PICKUP_NAMES_FILE_NAME = Path('current_pickup_names.txt')
 CHATLOG_FOLDER = Path('chatlogs')
 TTS_FOLDER = Path('tts_sounds')
 BANS_FOLDER = Path('bans')
@@ -50,6 +53,7 @@ BAN_FILE = str(BANS_FOLDER / 'bans.txt')
 ChatMessage = namedtuple('ChatMessage', ['user', 'message', 'command'])
 Color = namedtuple('Color', ['r', 'g', 'b', 'a'])
 MegaDisplay = namedtuple('MegaDisplay', ['height', 'width', 'size'])
+PickupNameRule = namedtuple('PickupNameRule', ['pickup', 'new_name'])
 
 class Bot:
 
@@ -503,6 +507,196 @@ class Bot:
             await self.send_chat_message(f'@{username} Something went wrong, I should probably look into that!')
             self.complete_redemption(event_id, reward_id, True)
 
+    def _parse_pickup_type(self, pickup: str):
+        pickup_pieces = pickup.split('|')
+        if len(pickup_pieces) !=2:
+            return None
+        prefix = pickup_pieces[0].strip()
+
+        id_pieces = pickup_pieces[1].split('=')
+        if len(id_pieces) == 2:
+            id = id_pieces[0].strip()
+            count = id_pieces[1].strip()
+        elif len(id_pieces) == 1:
+            id = id_pieces[0].strip()
+            count = None
+        else:
+            return None
+        if id == '' or count == '':
+            return None
+
+        # Make sure prefix is supported and expected
+        allowed_prefixes = [
+            'HC',
+            'EC',
+            'AC',
+            'KS',
+            'MS',
+            'EX',
+            'SK',
+            'EV',
+            'TP',
+            'RB',
+            'WT',
+            'TW'
+        ]
+        if prefix not in allowed_prefixes:
+            return None
+
+        # Special prefixes that can only have * as an ID
+        star_prefixes = [
+            'WT',
+            'TW',
+        ]
+        if prefix in star_prefixes and id != '*':
+            return None
+        
+        # static prefixes can only be ID 1
+        static_prefixes = [
+            'KS',
+            'MS',
+            'HC',
+            'EC'
+        ]
+        if prefix in static_prefixes:
+            if id != '1':
+                return None
+
+        # If countable item, then it may have a count, otherwise count is invalid
+        countable_prefixes = [
+            'KS',
+            'MS',
+            'HC',
+            'EC',
+            'RB'
+        ]
+        if prefix not in countable_prefixes and count is not None:
+                return None
+
+        # Experience pickups must have a numeric ID or range
+        if prefix == 'EX':
+            range_list = id.split('-')
+            if len(range_list) == 2:
+                range_low = range_list[0]
+                range_high = range_list[1]
+            elif len(range_list) == 1:
+                range_low = range_list[0]
+                range_high = None
+            else:
+                return None
+
+            try:
+                range_low = int(range_low)
+                if range_high is not None:
+                    range_high = int(range_high)
+            except ValueError:
+                return None
+
+        # Skills must actually exist in the game
+        allowed_skills = [
+            '0',
+            '2',
+            '3',
+            '4',
+            '5',
+            '8',
+            '12',
+            '14',
+            '15',
+            '50',
+            '51'
+        ]
+        if prefix == 'SK':
+            if id not in allowed_skills:
+                return None
+
+        # Events must actually exist in the game
+        allowed_events = [
+            '0',
+            '1',
+            '2',
+            '3',
+            '4',
+            '5'
+        ]
+        if prefix == 'EV':
+            if id not in allowed_events:
+                return None
+
+        # TPs must actually exist in the game
+        allowed_tps = [
+            'Glades',
+            'Grove',
+            'Swamp',
+            'Grotto',
+            'Ginso',
+            'Valley',
+            'Forlorn',
+            'Sorrow',
+            'Horu',
+            'Blackroot'
+        ]
+        if prefix == 'TP':
+            if id not in allowed_tps:
+                return None
+
+        # RBs must be a number, I don't feel like doing any more validation than that
+        if prefix == 'RB':
+            try:
+                id = int(id)
+            except ValueError:
+                return None
+        
+        # All done :)
+        if count is not None:
+            return f'{prefix}|{id}={count}'
+        else:
+            return f'{prefix}|{id}'
+
+    def _parse_pickup_rename_rule(self, user_input: str):
+        if ':' not in user_input:
+            return None
+        pickup = user_input[:user_input.index(':')].strip().upper()
+        new_name = user_input[user_input.index(':')+1:].strip()
+        if pickup == '' or new_name == '':
+            return None
+
+        pickup = self._parse_pickup_type(pickup)
+        if pickup is None:
+            return None
+
+        pipes = new_name.count('|')
+        escaped_pipes = new_name.count('\|')
+        if pipes != escaped_pipes:
+            return None
+
+        return PickupNameRule(pickup, new_name)
+        
+
+
+    async def process_pickup_rename(self, user_input, username, event_id, reward_id):
+        parsed_input = self._parse_pickup_rename_rule(user_input)
+        if parsed_input is None:
+            await self.send_chat_message(f'@{username} That pickup rule is invalid')
+            self.complete_redemption(event_id, reward_id, True)
+        
+        try:
+            with open(LOCAL_PICKUP_NAMES_FILE_NAME, 'r') as file:
+                lines = file.readlines()
+            with open(LOCAL_PICKUP_NAMES_FILE_NAME, 'w') as file:
+                for line in lines:
+                    current_pickup = line.split(':')[0]
+                    if current_pickup == parsed_input.pickup:
+                        file.write(f"{line.strip()} | {parsed_input.new_name}\n")
+                    else:
+                        file.write(line)
+            shutil.copyfile(LOCAL_PICKUP_NAMES_FILE_NAME, PICKUP_NAMES_FILE_NAME)
+        except:
+            await self.send_chat_message(f'@{username} Something went wrong, I should probably look into that!')
+            self.complete_redemption(event_id, reward_id, True)
+
+        self.complete_redemption(event_id, reward_id, False)
+
     def complete_redemption(self, redemption_id, reward_id, should_refund):
         """Either marks the reward as fulfilled, or refunds points if it couldn't be completed"""
         resp = requests.patch(r'https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions',          
@@ -565,6 +759,8 @@ class Bot:
             await self.change_color_setting('Multiworld Outbound Message Background Color', user_input, username, event['id'], reward_id)
         elif reward_id == MEGA_HEALTH_DISPLAY_ID:
             await self.change_mega_health_display(user_input, username, event['id'], reward_id)
+        elif reward_id == RENAME_ANYTHING_ID:
+            await self.process_pickup_rename(user_input, username, event['id'], reward_id)
         
     def tts_sound_check(self):
         files = os.listdir(str(TTS_FOLDER))
@@ -756,6 +952,11 @@ async def main():
         raise Exception('ExpNames file not found, make sure directory didn\'t change through some unknown black magic')
     shutil.copyfile(LOCAL_EXP_FILE_NAME, EXP_FILE_NAME)
 
+    # Initialize pickup names to match whatever is currently in local file
+    if not LOCAL_PICKUP_NAMES_FILE_NAME.exists():
+        raise Exception('PickupsNames file not found, make sure directory didn\'t change through some unknown black magic')
+    shutil.copyfile(LOCAL_PICKUP_NAMES_FILE_NAME, PICKUP_NAMES_FILE_NAME)
+
     # Initialize in game settings to match whatever is currently in local file
     with open(LOCAL_RANDO_SETTINGS_FILE_NAME, 'r') as file:
         lines = file.readlines()
@@ -763,6 +964,7 @@ async def main():
             if line[:2] == '//' or ':' not in line: continue
             name, val = line.split(':')
             _edit_setting_line(RANDO_SETTINGS_FILE_NAME, name.strip(), val.strip())
+
 
     # The real stuff
     client = Bot(chatlog_file=chatlog_file, restream_link=link)
@@ -773,7 +975,7 @@ async def main():
     await client.connect_command()
     await client.connect_conor()
     await client.unban_users()
-    # await client.create_channel_reward('Change Mega Health/Energy Display', 100)
+    # await client.create_channel_reward('Rename ANY pickup', 200)
     await client.loop()
 
 if __name__ == "__main__":

@@ -56,6 +56,23 @@ If someone really made you mad, you can remove the expereience name they added t
 
 The current list of experience names (as of the start of this stream) is in [current_exp_names.txt](/current_exp_names.txt).
 
+### Rename ANY pickup
+
+This does exactly what it says, and is extremely flexible. The randomizer supports overriding the name of pretty much any pickup, and this reward lets you add any new rule to the config file.
+
+The current list of pickup rules (as of the start of this stream), as well as a full explanation of how the game will interpret all rules and the different pickups you can override, is in [current_pickup_names.txt](/current_pickup_names.txt).
+
+To use this reward, you must input a new rule in format `CODE|ID: new name`. Your new rule will be added to any existing rules for that item. My bot can only do some basic validation to make sure that the format is correct, it can't verify you put in the correct item code or that the item code you put in will actually be recognized and displayed by the game.
+
+Some examples of valid inputs, see [current_pickup_names.txt](/current_pickup_names.txt) for full instructions:
+* `EX|1: Thanks, Torin` - Renames the 1 xp pickup. Other ID numbers target other xp values.
+* `EV|3: #it fucken WIMDY#` - Renames wind restored. Other ID numbers target other world events (clean water, warmth returned, water vein, gumon seal, sunstone)
+* `SK|5: Wall Interaction` - Renames double jump. Other ID numbers target other skills
+* `TP|Horu: @The Big Boi Play@` - Renames the Horu teleporter. Other ID strings target other teleporters.
+* `MS|1: A normal amount of mapstones` - Renames mapstone pickups. HC = health cell, EC = energy cell, AC = ability cell, KS = keystone
+* `MS|1=5-11: A suspicious amount of mapstones` - Renames the pickup for when I get a lot of mapstone.
+* `RB|12: The correct number of jumps` - Renames extra double jump. Other ID numbers target other bonus skills, full list is at https://github.com/sparkle-preference/OriDERandomizer/blob/master/RandomizerItemIDs.txt. Note that only bonus skills I can actually get through a pickup will be affected by this redemption. For exmaple, this means adding a rule for `RB|219` would do nothing, since this corresponds to sense, which cannot be found in a pickup in normal circumstances.
+
 ### Ban yourself
 
 Only one way to find out ( ͡° ͜ʖ ͡°)

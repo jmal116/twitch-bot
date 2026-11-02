@@ -1,0 +1,54 @@
+// Custom Pickup Names: used when Custom Pickup Names is on in the Rando options.
+// Lines in this file should have the following format:
+// KEYS: new_name1 | new_name2 | ...
+// A key is a comma-separated list of one or more of the following:
+//   -- CODE|ID    (A specific pickup, like EV|1 (clean water))
+//   -- CODE|LO-HI (A range of pickups with one code, like EX|1-9 (single-digit exp values))
+//   -- CODE|*     (Any pickup with a code, like EV|* (any world event))
+// A KS, MS, HC, EC or RB key can end in =N or =LO-HI to match only when {count} is in that range,
+//   like MS|1=5 (when you now have 5 mapstones).
+// In a new_name, {id} is replaced with the pickup's id, {count} with how many you now have (if applicable),
+// and {name} with the original pickup's name. Use \| to write a | inside a name.
+// *#@$ color wrapping and <style> tags both apply - see SH Format.txt for more info.
+
+// Rules are matched from most to least specific: an exact id match always wins, followed by
+//   the narrowest range wins if multiple match, and an * only if no exact or range matches.
+//   Among keys equally specific about the id, one with a count wins.
+// If you also have Randomized Experience Names enabled, any EX pickup not matched by a rule here
+// will be named from ExpNames.txt instead.
+
+// Some examples (remove the "// "s at the start of a line to try them out!)
+
+//   // Replace small exp values with joke names:
+// EX|1-25: {id} Misty revisits | {id} doorwarp attempts
+
+//   // Give proper thanks for the 1 Exp. (Overrides the earlier rule; ID is more specific than range)
+// EX|1: Thanks, Torin
+
+//   // Make skill names very big so you're sure to notice them
+// SK|*:<style fontscale=2.5 linescale=1>{name}</>
+
+//   // Replace "Wind Restored" with "It Fucken Wimdy", half the time (shoutouts to jmal116)
+// EV|3: {name} | #It Fucken Wimdy#
+
+//   // Let you know that you got a shard and how many of those you have, but not which one.
+// RB|17, RB|19, RB|21: A shard! You have {count}
+
+//   // Well, they're all stones, right?
+// KS|1, MS|1, EV|4: A stone | useful rock | Maybe it was the Sunstone this time
+
+//   // Only on the fifth mapstone you're holding
+// MS|1=5: A suspicious number of mapstones
+
+// Pickup codes and ids (a key is CODE|ID, like SK|0 for Bash):
+//   HC|1 Health Cell, EC|1 Energy Cell, AC|1 Ability Cell, KS|1 Keystone, MS|1 Mapstone
+//   EX|<amount> Experience
+//   SK: 0 Bash, 2 Charge Flame, 3 Wall Jump, 4 Stomp, 5 Double Jump, 8 Charge Jump, 12 Climb, 14 Glide,
+//      15 Spirit Flame, 50 Dash, 51 Grenade
+//   EV: 0 Water Vein, 1 Clean Water, 2 Gumon Seal, 3 Wind Restored, 4 Sunstone, 5 Warmth Returned
+//   TP|<name> Teleporter: Glades, Grove, Swamp, Grotto, Ginso, Valley, Forlorn, Sorrow, Horu, Blackroot
+//   RB|<id> Bonus items, listed in RandomizerItemIDs.txt:
+//     https://github.com/sparkle-preference/OriDERandomizer/blob/master/RandomizerItemIDs.txt
+//   WT (World Tour relics), SH (messages), TW (warps) and AP (Archipelago items) have text ids: use CODE|*
+
+EV|3: #it fucken WIMDY#

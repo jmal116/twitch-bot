@@ -679,6 +679,7 @@ class Bot:
         if parsed_input is None:
             await self.send_chat_message(f'@{username} That pickup rule is invalid')
             self.complete_redemption(event_id, reward_id, True)
+            return
         
         try:
             with open(LOCAL_PICKUP_NAMES_FILE_NAME, 'r') as file:
@@ -694,6 +695,7 @@ class Bot:
         except:
             await self.send_chat_message(f'@{username} Something went wrong, I should probably look into that!')
             self.complete_redemption(event_id, reward_id, True)
+            return
 
         self.complete_redemption(event_id, reward_id, False)
 

@@ -35,6 +35,7 @@ PICKUP_BG_COLOR_ID = 'd5aeb54b-2e39-44dc-aed2-c20f94d3b8ee'
 MW_PICKUP_BG_COLOR_ID = '5c45678f-52e4-42cf-8810-7a7f148b6271'
 MEGA_HEALTH_DISPLAY_ID = '2daa1c32-da64-476d-a747-04906f38062f'
 RENAME_ANYTHING_ID = '5c110f9d-b996-4093-9be1-aeda9415a7cd'
+MLG_ID = 'a4a6d304-ba25-4d0a-896f-640d09351df1'
 
 MINECRAFT_GAME_ID = '27471'
 
@@ -751,6 +752,8 @@ class Bot:
             play_sound_effect('gotem')
         elif reward_id == WHOMSTDVE_ID:
             play_sound_effect('whomstdve')
+        elif reward_id == MLG_ID:
+            play_sound_effect('airhorn')
         elif reward_id == BAN_REWARD_ID:
             await self.ban_user(username, user_id)
             play_sound_effect('coffin_dance')
